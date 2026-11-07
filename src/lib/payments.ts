@@ -12,7 +12,7 @@ import { FEATURED_DAYS, publishSubmission } from "@/lib/publish";
 
 export const LAUNCH_PASS = {
   /** Shown on the site. Keep it equal to the Dodo product's price. */
-  priceCents: Number(process.env.LAUNCH_PASS_PRICE_CENTS ?? 4900),
+  priceCents: Number(process.env.LAUNCH_PASS_PRICE_CENTS ?? 1900),
   currency: (process.env.LAUNCH_PASS_CURRENCY ?? "USD").toUpperCase(),
   /** Days in the "Featured launches" panel, counting launch day. */
   featuredDays: FEATURED_DAYS,
