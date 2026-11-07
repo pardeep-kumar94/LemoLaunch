@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" width="128" height="128">
+<defs>
+<linearGradient id="bg-sonar" x1="0" y1="0" x2="1" y2="1">
+<stop offset="0" stop-color="#0F9797"/>
+<stop offset="1" stop-color="#0F6E6E"/>
+</linearGradient>
+</defs>
+<rect width="128" height="128" rx="28" fill="url(#bg-sonar)"/>
+<circle cx="64" cy="64" r="38" stroke="#A4C8C8" stroke-opacity="0.7" stroke-width="5" fill="none"/>
+<circle cx="64" cy="64" r="22" stroke="#A4C8C8" stroke-opacity="0.7" stroke-width="5" fill="none"/>
+<path d="M64 64 L64 26 A38 38 0 0 1 96.9 45 Z" fill="#FFFFFF" fill-opacity="0.9"/>
+<circle cx="64" cy="64" r="7" fill="#FFFFFF"/>
+<circle cx="45" cy="84" r="5" fill="#FFFFFF"/>
+</svg>

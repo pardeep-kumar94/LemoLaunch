@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" width="128" height="128">
+<defs>
+<linearGradient id="bg-brine" x1="0" y1="0" x2="1" y2="1">
+<stop offset="0" stop-color="#B44911"/>
+<stop offset="1" stop-color="#8A3B12"/>
+</linearGradient>
+</defs>
+<rect width="128" height="128" rx="28" fill="url(#bg-brine)"/>
+<path d="M64 20 C64 20 77 34 77 42 A13 13 0 0 1 51 42 C51 34 64 20 64 20 Z" fill="#D3B5A5"/>
+<path d="M28 62 H100 A36 36 0 0 1 28 62 Z" fill="#FFFFFF" stroke="#FFFFFF" stroke-width="2" stroke-linejoin="round"/>
+<path d="M38 72 Q51 66 64 72 T90 72" stroke="#8A3B12" stroke-opacity="0.5" stroke-width="4" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+<rect x="50" y="96" width="28" height="8" rx="4" fill="#FFFFFF"/>
+</svg>

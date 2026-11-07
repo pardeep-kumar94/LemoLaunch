@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" width="128" height="128">
+<defs>
+<linearGradient id="bg-waypoint-tours" x1="0" y1="0" x2="1" y2="1">
+<stop offset="0" stop-color="#9E338D"/>
+<stop offset="1" stop-color="#7A2E6E"/>
+</linearGradient>
+</defs>
+<rect width="128" height="128" rx="28" fill="url(#bg-waypoint-tours)"/>
+<circle cx="28" cy="98" r="5" fill="#CCB0C8"/>
+<circle cx="43" cy="101" r="5" fill="#CCB0C8"/>
+<circle cx="57" cy="96" r="5" fill="#CCB0C8"/>
+<circle cx="68" cy="86" r="5" fill="#CCB0C8"/>
+<path d="M80 80 C80 80 58 62 58 45 A22 22 0 0 1 102 45 C102 62 80 80 80 80 Z" fill="#FFFFFF" stroke="#FFFFFF" stroke-width="2" stroke-linejoin="round"/>
+<circle cx="80" cy="45" r="8" fill="#7A2E6E"/>
+</svg>

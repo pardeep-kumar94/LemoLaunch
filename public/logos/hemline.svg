@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" width="128" height="128">
+<defs>
+<linearGradient id="bg-hemline" x1="0" y1="0" x2="1" y2="1">
+<stop offset="0" stop-color="#AE3F6D"/>
+<stop offset="1" stop-color="#8A3A5B"/>
+</linearGradient>
+</defs>
+<rect width="128" height="128" rx="28" fill="url(#bg-hemline)"/>
+<path d="M83 42 C102 52 94 74 72 74 C52 74 40 80 36 98" stroke="#D3B4C1" stroke-width="6" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+<g transform="rotate(40 64 64)">
+<path d="M64 22 C68 22 69 28 69 34 L69 84 L64 104 L59 84 L59 34 C59 28 60 22 64 22 Z" fill="#FFFFFF"/>
+<rect x="62" y="28" width="4" height="14" rx="2" fill="#8A3A5B"/>
+</g>
+</svg>

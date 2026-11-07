@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" width="128" height="128">
+<defs>
+<linearGradient id="bg-canopy" x1="0" y1="0" x2="1" y2="1">
+<stop offset="0" stop-color="#2F75B0"/>
+<stop offset="1" stop-color="#2C5F8A"/>
+</linearGradient>
+</defs>
+<rect width="128" height="128" rx="28" fill="url(#bg-canopy)"/>
+<rect x="58" y="70" width="12" height="32" rx="5" fill="#AFC2D3"/>
+<circle cx="47" cy="58" r="19" fill="#FFFFFF"/>
+<circle cx="81" cy="58" r="19" fill="#FFFFFF"/>
+<circle cx="64" cy="43" r="22" fill="#FFFFFF"/>
+<rect x="47" y="56" width="34" height="21" fill="#FFFFFF"/>
+</svg>

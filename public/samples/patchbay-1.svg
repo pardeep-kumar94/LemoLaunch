@@ -1,0 +1,121 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1600 1000" width="1600" height="1000" font-family="system-ui, sans-serif">
+<defs>
+<linearGradient id="bg-pb1" x1="0" y1="0" x2="1" y2="1">
+<stop offset="0" stop-color="#EBECFE"/>
+<stop offset="1" stop-color="#D2D6FC"/>
+</linearGradient>
+<clipPath id="win-pb1"><rect x="40" y="40" width="1520" height="920" rx="16"/></clipPath>
+</defs>
+<rect width="1600" height="1000" fill="url(#bg-pb1)"/>
+<rect x="40" y="52" width="1520" height="920" rx="16" fill="#000000" opacity="0.06"/>
+<rect x="40" y="46" width="1520" height="920" rx="16" fill="#000000" opacity="0.05"/>
+<g clip-path="url(#win-pb1)">
+<rect x="40" y="40" width="1520" height="920" fill="#FFFFFF"/>
+<rect x="40" y="40" width="1520" height="52" fill="#F1F2F4"/>
+<line x1="40" y1="92" x2="1560" y2="92" stroke="#E5E7EB"/>
+<circle cx="70" cy="66" r="6" fill="#FF5F57"/><circle cx="92" cy="66" r="6" fill="#FEBC2E"/><circle cx="114" cy="66" r="6" fill="#28C840"/>
+<rect x="560" y="53" width="480" height="26" rx="13" fill="#FFFFFF" stroke="#E5E7EB" stroke-width="1"/>
+<path d="M578 63 a4 4 0 0 1 8 0 v3 M576 66 h12 v8 h-12 z" fill="none" stroke="#9CA3AF" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+<text x="800" y="71" font-size="13" fill="#6B7280" font-weight="400" text-anchor="middle">app.patchbay.dev/workflows/stripe-crm-sync</text>
+<defs><pattern id="dots-pb1" width="24" height="24" patternUnits="userSpaceOnUse"><circle cx="2" cy="2" r="1.3" fill="#D5D9E2"/></pattern></defs>
+<rect x="300" y="152" width="1260" height="808" rx="0" fill="#F7F8FB"/>
+<rect x="300" y="152" width="1260" height="808" rx="0" fill="url(#dots-pb1)"/>
+<path d="M630 432 C675.0 432 675.0 302 720 302" fill="none" stroke="#3346F0" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+<path d="M630 432 C675.0 432 675.0 572 720 572" fill="none" stroke="#3346F0" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+<path d="M970 302 C1025.0 302 1025.0 252 1080 252" fill="none" stroke="#3346F0" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+<path d="M970 572 C1025.0 572 1025.0 472 1080 472" fill="none" stroke="#3346F0" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/>
+<path d="M970 572 C1025.0 572 1025.0 702 1080 702" fill="none" stroke="#D64545" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="6 7"/>
+<circle cx="1025" cy="522" r="12" fill="#3346F0" opacity="0.18"/><circle cx="1025" cy="522" r="6" fill="#3346F0"/>
+<rect x="380" y="383" width="250" height="104" rx="12" fill="#000000" opacity="0.05"/><rect x="380" y="380" width="250" height="104" rx="12" fill="#FFFFFF" stroke="#E5E7EB" stroke-width="1"/><rect x="396" y="396" width="32" height="32" rx="8" fill="#635BFF"/><circle cx="412" cy="412" r="6" fill="#FFFFFF"/><text x="440" y="409" font-size="11" fill="#6B7280" font-weight="600" text-anchor="start" letter-spacing="0.6">SOURCE</text><text x="440" y="427" font-size="15" fill="#1F2430" font-weight="600" text-anchor="start">Stripe</text><path d="M380 444 H630" fill="none" stroke="#E5E7EB" stroke-width="1" stroke-linecap="round" stroke-linejoin="round"/><text x="396" y="469" font-size="13" fill="#6B7280" font-weight="400" text-anchor="start">invoice.paid</text><rect x="546" y="398" width="70" height="22" rx="11.0" fill="#EBECFE"/><text x="581.0" y="412.96" font-size="11" fill="#3346F0" font-weight="600" text-anchor="middle">1.2k/day</text><circle cx="630" cy="432" r="7" fill="#3346F0"/>
+<rect x="720" y="253" width="250" height="104" rx="12" fill="#000000" opacity="0.05"/><rect x="720" y="250" width="250" height="104" rx="12" fill="#FFFFFF" stroke="#E5E7EB" stroke-width="1"/><rect x="736" y="266" width="32" height="32" rx="8" fill="#0EA5E9"/><circle cx="752" cy="282" r="6" fill="#FFFFFF"/><text x="780" y="279" font-size="11" fill="#6B7280" font-weight="600" text-anchor="start" letter-spacing="0.6">FILTER</text><text x="780" y="297" font-size="15" fill="#1F2430" font-weight="600" text-anchor="start">Only big deals</text><path d="M720 314 H970" fill="none" stroke="#E5E7EB" stroke-width="1" stroke-linecap="round" stroke-linejoin="round"/><text x="736" y="339" font-size="13" fill="#6B7280" font-weight="400" text-anchor="start">amount_paid &gt; 100000</text><circle cx="720" cy="302" r="7" fill="#FFFFFF" stroke="#3346F0" stroke-width="2.5"/><circle cx="970" cy="302" r="7" fill="#3346F0"/>
+<rect x="720" y="523" width="250" height="104" rx="12" fill="#000000" opacity="0.05"/><rect x="720" y="520" width="250" height="104" rx="12" fill="#FFFFFF" stroke="#3346F0" stroke-width="2"/><rect x="736" y="536" width="32" height="32" rx="8" fill="#8B5CF6"/><circle cx="752" cy="552" r="6" fill="#FFFFFF"/><text x="780" y="549" font-size="11" fill="#6B7280" font-weight="600" text-anchor="start" letter-spacing="0.6">TRANSFORM</text><text x="780" y="567" font-size="15" fill="#1F2430" font-weight="600" text-anchor="start">Map fields</text><path d="M720 584 H970" fill="none" stroke="#E5E7EB" stroke-width="1" stroke-linecap="round" stroke-linejoin="round"/><text x="736" y="609" font-size="13" fill="#6B7280" font-weight="400" text-anchor="start">customer, total, currency</text><circle cx="720" cy="572" r="7" fill="#FFFFFF" stroke="#3346F0" stroke-width="2.5"/><circle cx="970" cy="572" r="7" fill="#3346F0"/>
+<rect x="1080" y="203" width="250" height="104" rx="12" fill="#000000" opacity="0.05"/><rect x="1080" y="200" width="250" height="104" rx="12" fill="#FFFFFF" stroke="#E5E7EB" stroke-width="1"/><rect x="1096" y="216" width="32" height="32" rx="8" fill="#E01E5A"/><circle cx="1112" cy="232" r="6" fill="#FFFFFF"/><text x="1140" y="229" font-size="11" fill="#6B7280" font-weight="600" text-anchor="start" letter-spacing="0.6">DESTINATION</text><text x="1140" y="247" font-size="15" fill="#1F2430" font-weight="600" text-anchor="start">Slack</text><path d="M1080 264 H1330" fill="none" stroke="#E5E7EB" stroke-width="1" stroke-linecap="round" stroke-linejoin="round"/><text x="1096" y="289" font-size="13" fill="#6B7280" font-weight="400" text-anchor="start">#sales-wins</text><rect x="1288" y="218" width="28" height="22" rx="11.0" fill="#E7F6EE"/><text x="1302.0" y="232.96" font-size="11" fill="#1F9D55" font-weight="600" text-anchor="middle">OK</text><circle cx="1080" cy="252" r="7" fill="#FFFFFF" stroke="#3346F0" stroke-width="2.5"/>
+<rect x="1080" y="423" width="250" height="104" rx="12" fill="#000000" opacity="0.05"/><rect x="1080" y="420" width="250" height="104" rx="12" fill="#FFFFFF" stroke="#E5E7EB" stroke-width="1"/><rect x="1096" y="436" width="32" height="32" rx="8" fill="#336791"/><circle cx="1112" cy="452" r="6" fill="#FFFFFF"/><text x="1140" y="449" font-size="11" fill="#6B7280" font-weight="600" text-anchor="start" letter-spacing="0.6">DESTINATION</text><text x="1140" y="467" font-size="15" fill="#1F2430" font-weight="600" text-anchor="start">Postgres</text><path d="M1080 484 H1330" fill="none" stroke="#E5E7EB" stroke-width="1" stroke-linecap="round" stroke-linejoin="round"/><text x="1096" y="509" font-size="13" fill="#6B7280" font-weight="400" text-anchor="start">INSERT INTO invoices</text><rect x="1288" y="438" width="28" height="22" rx="11.0" fill="#E7F6EE"/><text x="1302.0" y="452.96" font-size="11" fill="#1F9D55" font-weight="600" text-anchor="middle">OK</text><circle cx="1080" cy="472" r="7" fill="#FFFFFF" stroke="#3346F0" stroke-width="2.5"/>
+<rect x="1080" y="653" width="250" height="104" rx="12" fill="#000000" opacity="0.05"/><rect x="1080" y="650" width="250" height="104" rx="12" fill="#FFFFFF" stroke="#E5E7EB" stroke-width="1"/><rect x="1096" y="666" width="32" height="32" rx="8" fill="#F97316"/><circle cx="1112" cy="682" r="6" fill="#FFFFFF"/><text x="1140" y="679" font-size="11" fill="#6B7280" font-weight="600" text-anchor="start" letter-spacing="0.6">DESTINATION</text><text x="1140" y="697" font-size="15" fill="#1F2430" font-weight="600" text-anchor="start">HTTP request</text><path d="M1080 714 H1330" fill="none" stroke="#E5E7EB" stroke-width="1" stroke-linecap="round" stroke-linejoin="round"/><text x="1096" y="739" font-size="13" fill="#6B7280" font-weight="400" text-anchor="start">POST /crm/deals</text><rect x="1246" y="668" width="70" height="22" rx="11.0" fill="#FDECEC"/><text x="1281.0" y="682.96" font-size="11" fill="#D64545" font-weight="600" text-anchor="middle">3 failed</text><circle cx="1080" cy="702" r="7" fill="#FFFFFF" stroke="#3346F0" stroke-width="2.5"/>
+<rect x="324" y="900" width="330" height="36" rx="10" fill="#FFFFFF" stroke="#E5E7EB" stroke-width="1"/>
+<circle cx="344" cy="918" r="5" fill="#1F9D55"/>
+<text x="358" y="923" font-size="13" fill="#1F2430" font-weight="500" text-anchor="start">Last delivery 2s ago · 99.4% success</text>
+<rect x="680" y="900" width="132" height="36" rx="10" fill="#FFFFFF" stroke="#E5E7EB" stroke-width="1"/>
+<text x="704" y="924" font-size="16" fill="#1F2430" font-weight="500" text-anchor="middle">−</text><text x="746" y="923" font-size="13" fill="#1F2430" font-weight="500" text-anchor="middle">100%</text><text x="788" y="924" font-size="16" fill="#1F2430" font-weight="500" text-anchor="middle">+</text>
+<rect x="1376" y="812" width="160" height="124" rx="10" fill="#FFFFFF" stroke="#E5E7EB" stroke-width="1"/>
+<rect x="1392.0" y="853.4" width="25" height="12" rx="3" fill="#C2C8FA"/>
+<rect x="1426.0" y="836.5" width="25" height="12" rx="3" fill="#C2C8FA"/>
+<rect x="1426.0" y="871.6" width="25" height="12" rx="3" fill="#C2C8FA"/>
+<rect x="1462.0" y="830.0" width="25" height="12" rx="3" fill="#C2C8FA"/>
+<rect x="1462.0" y="858.6" width="25" height="12" rx="3" fill="#C2C8FA"/>
+<rect x="1462.0" y="888.5" width="25" height="12" rx="3" fill="#C2C8FA"/>
+<rect x="1386" y="822" width="112" height="84" rx="4" fill="none" stroke="#3346F0" stroke-width="1.5"/>
+<rect x="40" y="152" width="260" height="808" rx="0" fill="#FFFFFF"/>
+<path d="M300 152 V960" fill="none" stroke="#E5E7EB" stroke-width="1" stroke-linecap="round" stroke-linejoin="round"/>
+<rect x="56" y="168" width="228" height="36" rx="8" fill="#F7F8FA" stroke="#E5E7EB" stroke-width="1"/>
+<text x="74" y="191" font-size="13" fill="#9CA3AF" font-weight="400" text-anchor="start">Search nodes</text>
+<text x="64" y="236" font-size="11" fill="#6B7280" font-weight="700" text-anchor="start" letter-spacing="0.8">SOURCES</text>
+<rect x="56" y="252" width="228" height="40" rx="8" fill="#FFFFFF"/>
+<rect x="66" y="261" width="22" height="22" rx="6" fill="#635BFF"/><circle cx="77" cy="272" r="4" fill="#FFFFFF"/>
+<text x="100" y="277" font-size="14" fill="#1F2430" font-weight="500" text-anchor="start">Stripe</text>
+<path d="M266 266 v12 M272 266 v12" fill="none" stroke="#9CA3AF" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+<rect x="56" y="296" width="228" height="40" rx="8" fill="#FFFFFF"/>
+<rect x="66" y="305" width="22" height="22" rx="6" fill="#24292F"/><circle cx="77" cy="316" r="4" fill="#FFFFFF"/>
+<text x="100" y="321" font-size="14" fill="#1F2430" font-weight="500" text-anchor="start">GitHub</text>
+<path d="M266 310 v12 M272 310 v12" fill="none" stroke="#9CA3AF" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+<rect x="56" y="340" width="228" height="40" rx="8" fill="#FFFFFF"/>
+<rect x="66" y="349" width="22" height="22" rx="6" fill="#5E8E3E"/><circle cx="77" cy="360" r="4" fill="#FFFFFF"/>
+<text x="100" y="365" font-size="14" fill="#1F2430" font-weight="500" text-anchor="start">Shopify</text>
+<path d="M266 354 v12 M272 354 v12" fill="none" stroke="#9CA3AF" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+<rect x="56" y="384" width="228" height="40" rx="8" fill="#FFFFFF"/>
+<rect x="66" y="393" width="22" height="22" rx="6" fill="#64748B"/><circle cx="77" cy="404" r="4" fill="#FFFFFF"/>
+<text x="100" y="409" font-size="14" fill="#1F2430" font-weight="500" text-anchor="start">Cron schedule</text>
+<path d="M266 398 v12 M272 398 v12" fill="none" stroke="#9CA3AF" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+<text x="64" y="450" font-size="11" fill="#6B7280" font-weight="700" text-anchor="start" letter-spacing="0.8">TRANSFORMS</text>
+<rect x="56" y="466" width="228" height="40" rx="8" fill="#FFFFFF"/>
+<rect x="66" y="475" width="22" height="22" rx="6" fill="#0EA5E9"/><circle cx="77" cy="486" r="4" fill="#FFFFFF"/>
+<text x="100" y="491" font-size="14" fill="#1F2430" font-weight="500" text-anchor="start">Filter</text>
+<path d="M266 480 v12 M272 480 v12" fill="none" stroke="#9CA3AF" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+<rect x="56" y="510" width="228" height="40" rx="8" fill="#FFFFFF"/>
+<rect x="66" y="519" width="22" height="22" rx="6" fill="#8B5CF6"/><circle cx="77" cy="530" r="4" fill="#FFFFFF"/>
+<text x="100" y="535" font-size="14" fill="#1F2430" font-weight="500" text-anchor="start">Map fields</text>
+<path d="M266 524 v12 M272 524 v12" fill="none" stroke="#9CA3AF" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+<rect x="56" y="554" width="228" height="40" rx="8" fill="#FFFFFF"/>
+<rect x="66" y="563" width="22" height="22" rx="6" fill="#A16207"/><circle cx="77" cy="574" r="4" fill="#FFFFFF"/>
+<text x="100" y="579" font-size="14" fill="#1F2430" font-weight="500" text-anchor="start">Delay</text>
+<path d="M266 568 v12 M272 568 v12" fill="none" stroke="#9CA3AF" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+<rect x="56" y="598" width="228" height="40" rx="8" fill="#FFFFFF"/>
+<rect x="66" y="607" width="22" height="22" rx="6" fill="#DB2777"/><circle cx="77" cy="618" r="4" fill="#FFFFFF"/>
+<text x="100" y="623" font-size="14" fill="#1F2430" font-weight="500" text-anchor="start">Branch</text>
+<path d="M266 612 v12 M272 612 v12" fill="none" stroke="#9CA3AF" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+<text x="64" y="664" font-size="11" fill="#6B7280" font-weight="700" text-anchor="start" letter-spacing="0.8">DESTINATIONS</text>
+<rect x="56" y="680" width="228" height="40" rx="8" fill="#FFFFFF"/>
+<rect x="66" y="689" width="22" height="22" rx="6" fill="#E01E5A"/><circle cx="77" cy="700" r="4" fill="#FFFFFF"/>
+<text x="100" y="705" font-size="14" fill="#1F2430" font-weight="500" text-anchor="start">Slack</text>
+<path d="M266 694 v12 M272 694 v12" fill="none" stroke="#9CA3AF" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+<rect x="56" y="724" width="228" height="40" rx="8" fill="#FFFFFF"/>
+<rect x="66" y="733" width="22" height="22" rx="6" fill="#336791"/><circle cx="77" cy="744" r="4" fill="#FFFFFF"/>
+<text x="100" y="749" font-size="14" fill="#1F2430" font-weight="500" text-anchor="start">Postgres</text>
+<path d="M266 738 v12 M272 738 v12" fill="none" stroke="#9CA3AF" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+<rect x="56" y="768" width="228" height="40" rx="8" fill="#FFFFFF"/>
+<rect x="66" y="777" width="22" height="22" rx="6" fill="#F97316"/><circle cx="77" cy="788" r="4" fill="#FFFFFF"/>
+<text x="100" y="793" font-size="14" fill="#1F2430" font-weight="500" text-anchor="start">HTTP request</text>
+<path d="M266 782 v12 M272 782 v12" fill="none" stroke="#9CA3AF" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+<rect x="56" y="812" width="228" height="40" rx="8" fill="#FFFFFF"/>
+<rect x="66" y="821" width="22" height="22" rx="6" fill="#0F766E"/><circle cx="77" cy="832" r="4" fill="#FFFFFF"/>
+<text x="100" y="837" font-size="14" fill="#1F2430" font-weight="500" text-anchor="start">Email</text>
+<path d="M266 826 v12 M272 826 v12" fill="none" stroke="#9CA3AF" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+<rect x="40" y="92" width="1520" height="60" rx="0" fill="#FFFFFF"/>
+<path d="M40 152 H1560" fill="none" stroke="#E5E7EB" stroke-width="1" stroke-linecap="round" stroke-linejoin="round"/>
+<rect x="64" y="108" width="28" height="28" rx="7.0" fill="#3346F0"/><circle cx="78.0" cy="122.0" r="5.04" fill="#FFFFFF"/>
+<text x="104" y="128" font-size="17" fill="#1F2430" font-weight="700" text-anchor="start">Patchbay</text>
+<text x="196" y="128" font-size="17" fill="#9CA3AF" font-weight="400" text-anchor="start">/</text>
+<text x="214" y="128" font-size="16" fill="#1F2430" font-weight="500" text-anchor="start">Stripe → CRM sync</text>
+<rect x="370" y="111" width="62" height="24" rx="12" fill="#E7F6EE"/>
+<circle cx="385" cy="123" r="3.5" fill="#1F9D55"/>
+<text x="395" y="127" font-size="12" fill="#1F9D55" font-weight="600" text-anchor="start">Live</text>
+<text x="1188" y="128" font-size="13" fill="#6B7280" font-weight="400" text-anchor="end">Saved 1 min ago</text>
+<rect x="1204" y="104" width="110" height="36" rx="8" fill="#FFFFFF" stroke="#E5E7EB" stroke-width="1"/><text x="1259.0" y="127.0" font-size="14" fill="#1F2430" font-weight="500" text-anchor="middle">Test run</text>
+<rect x="1326" y="104" width="100" height="36" rx="8" fill="#3346F0"/><text x="1376.0" y="127.0" font-size="14" fill="#FFFFFF" font-weight="600" text-anchor="middle">Deploy</text>
+<circle cx="1468" cy="122" r="15" fill="#0F766E" stroke="#FFFFFF" stroke-width="3"/><text x="1468" y="127.4" font-size="13" fill="#FFFFFF" font-weight="600" text-anchor="middle">P</text>
+<circle cx="1494" cy="122" r="15" fill="#B45309" stroke="#FFFFFF" stroke-width="3"/><text x="1494" y="127.4" font-size="13" fill="#FFFFFF" font-weight="600" text-anchor="middle">K</text>
+<circle cx="1520" cy="122" r="15" fill="#7C3AED" stroke="#FFFFFF" stroke-width="3"/><text x="1520" y="127.4" font-size="13" fill="#FFFFFF" font-weight="600" text-anchor="middle">D</text>
+</g>
+<rect x="40.5" y="40.5" width="1519" height="919" rx="16" fill="none" stroke="#000000" stroke-opacity="0.08"/>
+</svg>

@@ -1,0 +1,114 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1600 1000" width="1600" height="1000" font-family="system-ui, sans-serif">
+<defs>
+<linearGradient id="bg-dw1" x1="0" y1="0" x2="1" y2="1">
+<stop offset="0" stop-color="#E8EFF2"/>
+<stop offset="1" stop-color="#CDDBE2"/>
+</linearGradient>
+<clipPath id="win-dw1"><rect x="40" y="40" width="1520" height="920" rx="16"/></clipPath>
+</defs>
+<rect width="1600" height="1000" fill="url(#bg-dw1)"/>
+<rect x="40" y="52" width="1520" height="920" rx="16" fill="#000000" opacity="0.06"/>
+<rect x="40" y="46" width="1520" height="920" rx="16" fill="#000000" opacity="0.05"/>
+<g clip-path="url(#win-dw1)">
+<rect x="40" y="40" width="1520" height="920" fill="#FFFFFF"/>
+<rect x="40" y="40" width="1520" height="52" fill="#F1F2F4"/>
+<line x1="40" y1="92" x2="1560" y2="92" stroke="#E5E7EB"/>
+<circle cx="70" cy="66" r="6" fill="#FF5F57"/><circle cx="92" cy="66" r="6" fill="#FEBC2E"/><circle cx="114" cy="66" r="6" fill="#28C840"/>
+<rect x="560" y="53" width="480" height="26" rx="13" fill="#FFFFFF" stroke="#E5E7EB" stroke-width="1"/>
+<path d="M578 63 a4 4 0 0 1 8 0 v3 M576 66 h12 v8 h-12 z" fill="none" stroke="#9CA3AF" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+<text x="800" y="71" font-size="13" fill="#6B7280" font-weight="400" text-anchor="middle">driftwood.app/trips/lisbon/day-2</text>
+<rect x="440" y="92" width="1120" height="868" rx="0" fill="#CFE3EA"/>
+<path d="M440 92 H1560 V640 C1300 700 1100 640 900 700 C700 760 560 720 440 740 Z" fill="#EEF0E6"/>
+<path d="M440 880 C620 850 780 900 960 870 C1140 840 1340 890 1560 860 V960 H440 Z" fill="#EEF0E6"/>
+<ellipse cx="1260" cy="230" rx="120" ry="70" fill="#D5E5C6"/>
+<ellipse cx="760" cy="250" rx="70" ry="48" fill="#D5E5C6"/>
+<ellipse cx="1450" cy="520" rx="60" ry="40" fill="#D5E5C6"/>
+<path d="M440 300 C700 280 900 360 1560 330" fill="none" stroke="#FFFFFF" stroke-width="12" stroke-linecap="round" stroke-linejoin="round"/>
+<path d="M900 92 C880 300 940 450 1000 680" fill="none" stroke="#FFFFFF" stroke-width="12" stroke-linecap="round" stroke-linejoin="round"/>
+<path d="M600 92 L690 720" fill="none" stroke="#FFFFFF" stroke-width="8" stroke-linecap="round" stroke-linejoin="round"/>
+<path d="M1300 92 C1280 300 1340 500 1380 670" fill="none" stroke="#FFFFFF" stroke-width="10" stroke-linecap="round" stroke-linejoin="round"/>
+<path d="M440 480 C800 460 1100 520 1560 470" fill="none" stroke="#FFFFFF" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"/>
+<path d="M1100 92 L1150 650" fill="none" stroke="#FFFFFF" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/>
+<path d="M440 610 C620 600 760 640 900 620" fill="none" stroke="#FFFFFF" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/>
+<path d="M1000 200 C1150 190 1250 160 1560 180" fill="none" stroke="#FFFFFF" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/>
+<text x="1010" y="790" font-size="16" fill="#7FA6B5" font-weight="500" text-anchor="middle" font-style="italic" letter-spacing="2">Tagus</text>
+<text x="1260" y="236" font-size="12" fill="#7C9A6A" font-weight="500" text-anchor="middle">Parque Eduardo VII</text>
+<path d="M600 420 C660 500 700 540 760 560 S880 480 940 500 S1060 580 1120 560 S1280 420 1320 380" fill="none" stroke="#1D5C7A" stroke-width="5" stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="2 12"/>
+<g transform="translate(600 420) scale(1.0)"><path d="M0 0 C-6 -10 -20 -18 -20 -32 A20 20 0 0 1 20 -32 C20 -18 6 -10 0 0 Z" fill="#1D5C7A" stroke="#FFFFFF" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/><text x="0" y="-26" font-size="15" fill="#FFFFFF" font-weight="700" text-anchor="middle">1</text></g>
+<g transform="translate(940 500) scale(1.0)"><path d="M0 0 C-6 -10 -20 -18 -20 -32 A20 20 0 0 1 20 -32 C20 -18 6 -10 0 0 Z" fill="#1D5C7A" stroke="#FFFFFF" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/><text x="0" y="-26" font-size="15" fill="#FFFFFF" font-weight="700" text-anchor="middle">3</text></g>
+<g transform="translate(1120 560) scale(1.0)"><path d="M0 0 C-6 -10 -20 -18 -20 -32 A20 20 0 0 1 20 -32 C20 -18 6 -10 0 0 Z" fill="#1D5C7A" stroke="#FFFFFF" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/><text x="0" y="-26" font-size="15" fill="#FFFFFF" font-weight="700" text-anchor="middle">4</text></g>
+<g transform="translate(1320 380) scale(1.0)"><path d="M0 0 C-6 -10 -20 -18 -20 -32 A20 20 0 0 1 20 -32 C20 -18 6 -10 0 0 Z" fill="#1D5C7A" stroke="#FFFFFF" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/><text x="0" y="-26" font-size="15" fill="#FFFFFF" font-weight="700" text-anchor="middle">5</text></g>
+<g transform="translate(760 560) scale(1.25)"><circle cx="0" cy="0" r="14" fill="#1D5C7A" opacity="0.18"/><path d="M0 0 C-6 -10 -20 -18 -20 -32 A20 20 0 0 1 20 -32 C20 -18 6 -10 0 0 Z" fill="#1D5C7A" stroke="#FFFFFF" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/><text x="0" y="-26" font-size="15" fill="#FFFFFF" font-weight="700" text-anchor="middle">2</text></g>
+<rect x="522" y="604" width="230" height="74" rx="12" fill="#000000" opacity="0.06" transform="translate(0 3)"/>
+<rect x="522" y="604" width="230" height="70" rx="12" fill="#FFFFFF"/>
+<text x="540" y="632" font-size="15" fill="#1F2430" font-weight="600" text-anchor="start">Belem Tower</text>
+<text x="540" y="655" font-size="12" fill="#6B7280" font-weight="400" text-anchor="start">Day 2 · Stop 2 · 14:00</text>
+<circle cx="722" cy="637" r="11" fill="#C2410C" stroke="#FFFFFF" stroke-width="3"/><text x="722" y="640.96" font-size="9" fill="#FFFFFF" font-weight="600" text-anchor="middle">M</text>
+<rect x="464" y="116" width="360" height="44" rx="22" fill="#FFFFFF" stroke="#E5E7EB" stroke-width="1"/>
+<circle cx="490" cy="137" r="7" fill="none" stroke="#9CA3AF" stroke-width="2"/><path d="M495 142 L500 147" fill="none" stroke="#9CA3AF" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+<text x="512" y="143" font-size="14" fill="#9CA3AF" font-weight="400" text-anchor="start">Search places in Lisbon</text>
+<rect x="840" y="122" width="70" height="32" rx="16.0" fill="#1D5C7A"/><text x="875.0" y="142.68" font-size="13" fill="#FFFFFF" font-weight="500" text-anchor="middle">Food</text>
+<rect x="918" y="122" width="80" height="32" rx="16.0" fill="#FFFFFF" stroke="#E5E7EB" stroke-width="1"/><text x="958.0" y="142.68" font-size="13" fill="#1F2430" font-weight="500" text-anchor="middle">Sights</text>
+<rect x="1006" y="122" width="72" height="32" rx="16.0" fill="#FFFFFF" stroke="#E5E7EB" stroke-width="1"/><text x="1042.0" y="142.68" font-size="13" fill="#1F2430" font-weight="500" text-anchor="middle">Stays</text>
+<rect x="1086" y="122" width="90" height="32" rx="16.0" fill="#FFFFFF" stroke="#E5E7EB" stroke-width="1"/><text x="1131.0" y="142.68" font-size="13" fill="#1F2430" font-weight="500" text-anchor="middle">Beaches</text>
+<rect x="1504" y="116" width="40" height="84" rx="10" fill="#FFFFFF" stroke="#E5E7EB" stroke-width="1"/>
+<path d="M1524 130 V146 M1516 138 H1532 M1516 178 H1532" fill="none" stroke="#1F2430" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+<path d="M1504 158 H1544" fill="none" stroke="#E5E7EB" stroke-width="1" stroke-linecap="round" stroke-linejoin="round"/>
+<rect x="1440" y="920" width="96" height="20" rx="4" fill="#FFFFFF" opacity="0.85"/>
+<path d="M1450 932 H1500 M1450 928 V936 M1500 928 V936" fill="none" stroke="#1F2430" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+<text x="1508" y="935" font-size="11" fill="#1F2430" font-weight="400" text-anchor="start">500 m</text>
+<rect x="40" y="92" width="400" height="868" rx="0" fill="#FAFBFC"/>
+<path d="M440 92 V960" fill="none" stroke="#E5E7EB" stroke-width="1" stroke-linecap="round" stroke-linejoin="round"/>
+<rect x="64" y="114" width="28" height="28" rx="7.0" fill="#1D5C7A"/><circle cx="78.0" cy="128.0" r="5.04" fill="#FFFFFF"/>
+<text x="102" y="134" font-size="18" fill="#1F2430" font-weight="700" text-anchor="start">Driftwood</text>
+<text x="64" y="196" font-size="26" fill="#1F2430" font-weight="700" text-anchor="start">Lisbon &amp; Sintra</text>
+<text x="64" y="222" font-size="14" fill="#6B7280" font-weight="400" text-anchor="start">Jun 12 - 16 · 5 travellers</text>
+<circle cx="78" cy="256" r="14" fill="#C2410C" stroke="#FAFBFC" stroke-width="3"/><text x="78" y="261.04" font-size="12" fill="#FFFFFF" font-weight="600" text-anchor="middle">M</text>
+<circle cx="102" cy="256" r="14" fill="#0F766E" stroke="#FAFBFC" stroke-width="3"/><text x="102" y="261.04" font-size="12" fill="#FFFFFF" font-weight="600" text-anchor="middle">J</text>
+<circle cx="126" cy="256" r="14" fill="#7C3AED" stroke="#FAFBFC" stroke-width="3"/><text x="126" y="261.04" font-size="12" fill="#FFFFFF" font-weight="600" text-anchor="middle">A</text>
+<circle cx="150" cy="256" r="14" fill="#B45309" stroke="#FAFBFC" stroke-width="3"/><text x="150" y="261.04" font-size="12" fill="#FFFFFF" font-weight="600" text-anchor="middle">S</text>
+<circle cx="174" cy="256" r="14" fill="#2563EB" stroke="#FAFBFC" stroke-width="3"/><text x="174" y="261.04" font-size="12" fill="#FFFFFF" font-weight="600" text-anchor="middle">R</text>
+<text x="212" y="261" font-size="13" fill="#1D5C7A" font-weight="600" text-anchor="start">Invite</text>
+<rect x="64" y="290" width="64" height="32" rx="16.0" fill="#FFFFFF" stroke="#E5E7EB" stroke-width="1"/><text x="96.0" y="310.68" font-size="13" fill="#1F2430" font-weight="500" text-anchor="middle">Day 1</text>
+<rect x="134" y="290" width="64" height="32" rx="16.0" fill="#1D5C7A"/><text x="166.0" y="310.68" font-size="13" fill="#FFFFFF" font-weight="600" text-anchor="middle">Day 2</text>
+<rect x="204" y="290" width="64" height="32" rx="16.0" fill="#FFFFFF" stroke="#E5E7EB" stroke-width="1"/><text x="236.0" y="310.68" font-size="13" fill="#1F2430" font-weight="500" text-anchor="middle">Day 3</text>
+<rect x="274" y="290" width="64" height="32" rx="16.0" fill="#FFFFFF" stroke="#E5E7EB" stroke-width="1"/><text x="306.0" y="310.68" font-size="13" fill="#1F2430" font-weight="500" text-anchor="middle">Day 4</text>
+<rect x="344" y="290" width="64" height="32" rx="16.0" fill="#FFFFFF" stroke="#E5E7EB" stroke-width="1"/><text x="376.0" y="310.68" font-size="13" fill="#1F2430" font-weight="500" text-anchor="middle">Day 5</text>
+<rect x="56" y="346" width="368" height="80" rx="12" fill="#FFFFFF" stroke="#E5E7EB" stroke-width="1"/>
+<circle cx="90" cy="386" r="16" fill="#1D5C7A"/><text x="90" y="391" font-size="14" fill="#FFFFFF" font-weight="700" text-anchor="middle">1</text>
+<text x="118" y="380" font-size="16" fill="#1F2430" font-weight="600" text-anchor="start">Time Out Market</text>
+<text x="118" y="403" font-size="13" fill="#6B7280" font-weight="400" text-anchor="start">Lunch · 4 votes</text>
+<text x="406" y="380" font-size="13" fill="#6B7280" font-weight="500" text-anchor="end">12:30</text>
+<path d="M90 404 V438" fill="none" stroke="#A5BECA" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="3 5"/>
+<rect x="56" y="438" width="368" height="80" rx="12" fill="#E4EBEF" stroke="#1D5C7A" stroke-width="1.5"/>
+<circle cx="90" cy="478" r="16" fill="#1D5C7A"/><text x="90" y="483" font-size="14" fill="#FFFFFF" font-weight="700" text-anchor="middle">2</text>
+<text x="118" y="472" font-size="16" fill="#1F2430" font-weight="600" text-anchor="start">Belem Tower</text>
+<text x="118" y="495" font-size="13" fill="#6B7280" font-weight="400" text-anchor="start">Walk 18 min · tickets booked</text>
+<text x="406" y="472" font-size="13" fill="#6B7280" font-weight="500" text-anchor="end">14:00</text>
+<path d="M90 496 V530" fill="none" stroke="#A5BECA" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="3 5"/>
+<rect x="56" y="530" width="368" height="80" rx="12" fill="#FFFFFF" stroke="#E5E7EB" stroke-width="1"/>
+<circle cx="90" cy="570" r="16" fill="#1D5C7A"/><text x="90" y="575" font-size="14" fill="#FFFFFF" font-weight="700" text-anchor="middle">3</text>
+<text x="118" y="564" font-size="16" fill="#1F2430" font-weight="600" text-anchor="start">Pasteis de Belem</text>
+<text x="118" y="587" font-size="13" fill="#6B7280" font-weight="400" text-anchor="start">Snack · Ana's pick</text>
+<text x="406" y="564" font-size="13" fill="#6B7280" font-weight="500" text-anchor="end">15:30</text>
+<path d="M90 588 V622" fill="none" stroke="#A5BECA" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="3 5"/>
+<rect x="56" y="622" width="368" height="80" rx="12" fill="#FFFFFF" stroke="#E5E7EB" stroke-width="1"/>
+<circle cx="90" cy="662" r="16" fill="#1D5C7A"/><text x="90" y="667" font-size="14" fill="#FFFFFF" font-weight="700" text-anchor="middle">4</text>
+<text x="118" y="656" font-size="16" fill="#1F2430" font-weight="600" text-anchor="start">LX Factory</text>
+<text x="118" y="679" font-size="13" fill="#6B7280" font-weight="400" text-anchor="start">Shops &amp; dinner</text>
+<text x="406" y="656" font-size="13" fill="#6B7280" font-weight="500" text-anchor="end">17:00</text>
+<path d="M90 680 V714" fill="none" stroke="#A5BECA" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="3 5"/>
+<rect x="56" y="714" width="368" height="80" rx="12" fill="#FFFFFF" stroke="#E5E7EB" stroke-width="1"/>
+<circle cx="90" cy="754" r="16" fill="#1D5C7A"/><text x="90" y="759" font-size="14" fill="#FFFFFF" font-weight="700" text-anchor="middle">5</text>
+<text x="118" y="748" font-size="16" fill="#1F2430" font-weight="600" text-anchor="start">Miradouro da Graca</text>
+<text x="118" y="771" font-size="13" fill="#6B7280" font-weight="400" text-anchor="start">Sunset viewpoint</text>
+<text x="406" y="748" font-size="13" fill="#6B7280" font-weight="500" text-anchor="end">19:45</text>
+<rect x="56" y="812" width="368" height="48" rx="12" fill="none" stroke="#1D5C7A" stroke-width="1.5" stroke-dasharray="6 6"/>
+<text x="240" y="842" font-size="14" fill="#1D5C7A" font-weight="600" text-anchor="middle">+  Add a stop</text>
+<path d="M56 890 H424" fill="none" stroke="#E5E7EB" stroke-width="1" stroke-linecap="round" stroke-linejoin="round"/>
+<text x="64" y="920" font-size="13" fill="#6B7280" font-weight="400" text-anchor="start">Walking 6.2 km · 3 h 10 min</text>
+<text x="424" y="920" font-size="13" fill="#1F2430" font-weight="600" text-anchor="end">Est. 38 EUR pp</text>
+</g>
+<rect x="40.5" y="40.5" width="1519" height="919" rx="16" fill="none" stroke="#000000" stroke-opacity="0.08"/>
+</svg>

@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" width="128" height="128">
+<defs>
+<linearGradient id="bg-paperplane" x1="0" y1="0" x2="1" y2="1">
+<stop offset="0" stop-color="#3157B2"/>
+<stop offset="1" stop-color="#2E4A8C"/>
+</linearGradient>
+</defs>
+<rect width="128" height="128" rx="28" fill="url(#bg-paperplane)"/>
+<path d="M26 62 L102 28 L80 100 L62 76 Z" fill="#FFFFFF" stroke="#FFFFFF" stroke-width="3" stroke-linejoin="round"/>
+<path d="M62 76 L66 98 L76 86" fill="#B0BAD3" stroke="#B0BAD3" stroke-width="3" stroke-linejoin="round"/>
+<path d="M102 28 L62 76" stroke="#2E4A8C" stroke-opacity="0.45" stroke-width="4" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>

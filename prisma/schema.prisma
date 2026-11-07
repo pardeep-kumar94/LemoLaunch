@@ -1,0 +1,162 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Product {
+  id          String   @id @default(cuid())
+  slug        String   @unique
+  name        String
+  tagline     String
+  description String?
+  websiteUrl  String?
+  /// Where it runs: any of "web", "ios", "android".
+  platforms   String[] @default(["web"])
+  appStoreUrl  String?
+  playStoreUrl String?
+  maker       String
+  /// Hex color behind the logo, and the fallback tile when there's no logo.
+  accent      String
+  /// Path to the logo image, e.g. /logos/driftwood.svg or /uploads/...
+  logoUrl     String?
+  /// Screenshots shown on the product page, in order.
+  galleryUrls String[] @default([])
+  /// Either an uploaded video (/uploads/...) or a YouTube, Vimeo or Loom link.
+  videoUrl    String?
+  /// Maker has confirmed they own the product.
+  verified    Boolean  @default(false)
+  /// Highlighted in the feed with a tinted card.
+  featured    Boolean  @default(false)
+  /// Launch day in UTC. Products dated after today are "upcoming".
+  launchDate  DateTime @db.Date
+  createdAt   DateTime @default(now())
+  /// The account that owns this launch, once a submission is approved.
+  makerId     String?
+  /// Launch Pass: shown in the "Featured launches" panel until this UTC day (inclusive).
+  featuredUntil DateTime? @db.Date
+
+  makerUser  User?       @relation(fields: [makerId], references: [id], onDelete: SetNull)
+  submission Submission?
+  topics    Topic[]
+  votes    Vote[]
+  comments Comment[]
+
+  @@index([launchDate])
+}
+
+model Topic {
+  id       String    @id @default(cuid())
+  slug     String    @unique
+  name     String
+  products Product[]
+}
+
+/// One upvote per anonymous visitor (cookie id) per product.
+model Vote {
+  id        String   @id @default(cuid())
+  productId String
+  visitorId String
+  createdAt DateTime @default(now())
+
+  product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@unique([productId, visitorId])
+}
+
+/// Daily digest signups. Sending the digest is not built yet.
+model Subscriber {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  createdAt DateTime @default(now())
+}
+
+/// Launches submitted through /submit, waiting for review.
+model Submission {
+  id          String   @id @default(cuid())
+  userId      String
+  name        String
+  /// Any of "web", "ios", "android"; each needs its matching link.
+  platforms   String[]
+  websiteUrl  String?
+  appStoreUrl  String?
+  playStoreUrl String?
+  tagline     String
+  description String   @default("")
+  topicSlug   String?
+  /// Launch Pass makers pick their day; free launches are scheduled by the reviewer.
+  launchDate  DateTime? @db.Date
+  /// "free" or "pass".
+  plan        String   @default("free")
+  /// "awaiting_payment" until a Launch Pass is paid, "pending" briefly, then "approved" once published.
+  status      String   @default("pending")
+  /// "none", "awaiting", "paid", "refunded" or "refund_failed".
+  paymentStatus     String    @default("none")
+  checkoutSessionId String?
+  paymentId         String?
+  amountCents       Int?
+  currency          String?
+  paidAt            DateTime?
+  /// When it was published as a product.
+  reviewedAt        DateTime?
+  reviewNote        String?
+  productId         String?   @unique
+  email       String
+  logoUrl     String
+  galleryUrls String[]
+  /// An uploaded video (/uploads/...) or a YouTube, Vimeo or Loom link.
+  videoUrl    String
+  createdAt   DateTime @default(now())
+
+  user    User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  product Product? @relation(fields: [productId], references: [id], onDelete: SetNull)
+
+  @@index([status, createdAt])
+}
+
+model User {
+  id           String   @id @default(cuid())
+  name         String
+  email        String   @unique
+  /// scrypt hash: "scrypt$<salt hex>$<hash hex>". "!" means the account can't sign in.
+  passwordHash String
+  /// Profile photo, an /uploads path.
+  avatarUrl    String?
+  /// Short line shown under the name, e.g. "Building tools for remote teams".
+  headline     String?
+  websiteUrl   String?
+  createdAt    DateTime @default(now())
+
+  sessions    Session[]
+  comments    Comment[]
+  submissions Submission[]
+  products    Product[]
+}
+
+/// A signed-in browser. The id is the SHA-256 of the cookie token, never the token itself.
+model Session {
+  id        String   @id
+  userId    String
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+model Comment {
+  id        String   @id @default(cuid())
+  productId String
+  userId    String
+  body      String
+  createdAt DateTime @default(now())
+
+  product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([productId, createdAt])
+}

@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" width="128" height="128">
+<defs>
+<linearGradient id="bg-quarry" x1="0" y1="0" x2="1" y2="1">
+<stop offset="0" stop-color="#7D6336"/>
+<stop offset="1" stop-color="#5C4B2E"/>
+</linearGradient>
+</defs>
+<rect width="128" height="128" rx="28" fill="url(#bg-quarry)"/>
+<rect x="28" y="24" width="44" height="56" rx="7" fill="#C1BBB0" fill-opacity="0.55"/>
+<rect x="38" y="34" width="44" height="56" rx="7" fill="#C1BBB0"/>
+<path d="M46 48 H70 M46 58 H62" stroke="#5C4B2E" stroke-width="5" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+<circle cx="80" cy="78" r="15" fill="#5C4B2E" stroke="#FFFFFF" stroke-width="9"/>
+<path d="M91 89 L102 100" stroke="#FFFFFF" stroke-width="10" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>

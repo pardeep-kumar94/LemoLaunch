@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" width="128" height="128">
+<defs>
+<linearGradient id="bg-kiln" x1="0" y1="0" x2="1" y2="1">
+<stop offset="0" stop-color="#CA4A1F"/>
+<stop offset="1" stop-color="#A1401F"/>
+</linearGradient>
+</defs>
+<rect width="128" height="128" rx="28" fill="url(#bg-kiln)"/>
+<rect x="40" y="22" width="48" height="84" rx="12" stroke="#FFFFFF" stroke-width="8" fill="none"/>
+<path d="M58 33 H70" stroke="#FFFFFF" stroke-width="4" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+<path d="M64 46 C72 56 78 62 78 74 A14 14 0 0 1 50 74 C50 66 55 61 58 55 C60 61 62 63 64 63 C65 57 63 52 64 46 Z" fill="#DBB6AA" stroke="#DBB6AA" stroke-width="2" stroke-linejoin="round"/>
+</svg>

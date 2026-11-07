@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" width="128" height="128">
+<defs>
+<linearGradient id="bg-harbor-logs" x1="0" y1="0" x2="1" y2="1">
+<stop offset="0" stop-color="#217793"/>
+<stop offset="1" stop-color="#1E5A6E"/>
+</linearGradient>
+</defs>
+<rect width="128" height="128" rx="28" fill="url(#bg-harbor-logs)"/>
+<circle cx="64" cy="31" r="8" stroke="#FFFFFF" stroke-width="7" fill="none"/>
+<path d="M64 40 V100 M48 54 H80" stroke="#FFFFFF" stroke-width="9" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+<path d="M32 76 C34 92 50 100 64 100 C78 100 94 92 96 76" stroke="#FFFFFF" stroke-width="9" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+<path d="M24 84 L32 74 L42 80 M104 84 L96 74 L86 80" stroke="#AAC0C8" stroke-width="7" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>

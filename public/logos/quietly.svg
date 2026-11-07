@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" width="128" height="128">
+<defs>
+<linearGradient id="bg-quietly" x1="0" y1="0" x2="1" y2="1">
+<stop offset="0" stop-color="#555C8A"/>
+<stop offset="1" stop-color="#4B4F6B"/>
+</linearGradient>
+</defs>
+<rect width="128" height="128" rx="28" fill="url(#bg-quietly)"/>
+<defs><mask id="m-quietly"><rect width="128" height="128" fill="#FFFFFF"/><circle cx="82" cy="50" r="27" fill="#000000"/></mask></defs>
+<circle cx="60" cy="66" r="34" fill="#FFFFFF" mask="url(#m-quietly)"/>
+<circle cx="94" cy="32" r="4.5" fill="#BBBCC7"/>
+<circle cx="102" cy="52" r="3" fill="#BBBCC7"/>
+</svg>
