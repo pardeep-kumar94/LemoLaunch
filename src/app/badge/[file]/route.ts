@@ -5,7 +5,7 @@ import { startOfUtcDay } from "@/lib/dates";
 import { db } from "@/lib/db";
 import { isUpcoming } from "@/lib/launches";
 
-/** The embeddable "Launched on LaunchPad" badge: /badge/<product-slug>.svg?theme=light|yellow|dark */
+/** The embeddable "Launched on LemoLaunch" badge: /badge/<product-slug>.svg?theme=light|yellow|dark */
 export async function GET(request: Request, { params }: RouteContext<"/badge/[file]">) {
   const slug = (await params).file.match(/^([a-z0-9-]{1,80})\.svg$/)?.[1];
   if (!slug) return new Response("Not found", { status: 404 });

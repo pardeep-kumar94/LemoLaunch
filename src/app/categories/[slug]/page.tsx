@@ -19,7 +19,7 @@ export async function generateMetadata({
   const topic = SLUG_PATTERN.test(slug)
     ? await db.topic.findUnique({ where: { slug }, select: { name: true } })
     : null;
-  return { title: topic ? `${topic.name} launches | LaunchPad` : "Category not found | LaunchPad" };
+  return { title: topic ? `${topic.name} launches | LemoLaunch` : "Category not found | LemoLaunch" };
 }
 
 export default function CategoryPage({ params }: PageProps<"/categories/[slug]">) {

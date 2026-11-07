@@ -9,7 +9,7 @@ import { db } from "@/lib/db";
 import { formatLaunchDay } from "@/lib/dates";
 import { formatPrice, LAUNCH_PASS, syncCheckout } from "@/lib/payments";
 
-export const metadata: Metadata = { title: "Launch Pass payment | LaunchPad", robots: { index: false } };
+export const metadata: Metadata = { title: "Launch Pass payment | LemoLaunch", robots: { index: false } };
 
 export default function PaymentReturnPage({ searchParams }: PageProps<"/submit/payment">) {
   return (

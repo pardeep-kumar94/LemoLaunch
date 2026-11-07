@@ -1,4 +1,4 @@
-# LaunchPad
+# LemoLaunch
 
 A daily launch directory. Visitors browse today's launches, step back through the week, filter by category, search, upvote what they'd use, and see what's coming next. Makers submit launches for review.
 
@@ -49,7 +49,7 @@ The seed dates launches relative to the day you run it (yesterday, today, tomorr
 - **Verified** and **featured** are flags on `Product`, set by the seed for now; there's no verification or promotion flow yet.
 - **Launches publish themselves** (`src/lib/publish.ts`); there's no admin review. A free launch is scheduled on the next day with fewer than 8 free launches. A Launch Pass is scheduled on the maker's chosen day as soon as payment succeeds, and is featured for 7 days. Makers can cancel any launch before it goes live, from their profile; a paid one is refunded automatically.
 - **Payments** use Dodo Payments (`src/lib/payments.ts`). Set the `DODO_*` variables from `.env.example` and point Dodo's webhook at `/api/webhooks/dodo`. Without keys, local development uses a simulated checkout and production hides the Launch Pass.
-- **Badges:** makers get a "Launched on LaunchPad" badge for their own site from the panel on their product page (only they see it). `/badge/<slug>.svg?theme=light|yellow|dark` draws it with the live upvote count (or the launch day before launch), and `public/embed.js` lets them add it with one script tag. Embed codes use `SITE_URL`, so set it in production.
+- **Badges:** makers get a "Launched on LemoLaunch" badge for their own site from the panel on their product page (only they see it). `/badge/<slug>.svg?theme=light|yellow|dark` draws it with the live upvote count (or the launch day before launch), and `public/embed.js` lets them add it with one script tag. Embed codes use `SITE_URL`, so set it in production.
 - **Brand assets:** the header and footer logos and the badge logos are in `public/brand`; the favicon and app icons are `src/app/favicon.ico`, `icon.png` and `apple-icon.png`.
 - Digest signups are stored but no emails are sent.
 - **Sample data:** logos are SVGs in `public/logos`, sample screenshots in `public/samples`, and the seed adds a few sample members (who can't sign in) with comments.

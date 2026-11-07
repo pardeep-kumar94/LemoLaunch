@@ -14,7 +14,7 @@ const lexend = Lexend({
 });
 
 export const metadata: Metadata = {
-  title: "LaunchPad: today's new products",
+  title: "LemoLaunch: today's new products",
   description:
     "Discover products launching today, upvote the ones you like, and see what lands tomorrow.",
 };
@@ -28,7 +28,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
       <body className="flex min-h-full flex-col">
         <header className="band">
           <div className="mx-auto flex h-[76px] w-full max-w-6xl items-center gap-3 px-4 sm:gap-7 sm:px-8">
-            <Link href="/" className="shrink-0">
+            <Link href="/" className="flex shrink-0">
               <Wordmark priority />
             </Link>
             <nav aria-label="Main" className="hidden items-center gap-5 text-[15px] font-semibold whitespace-nowrap lg:flex">
@@ -152,7 +152,7 @@ function SiteFooter() {
         />
       </div>
       <div className="border-t-2 border-line">
-        <p className="mx-auto max-w-6xl px-4 py-6 text-sm text-mist sm:px-8">© 2026 LaunchPad</p>
+        <p className="mx-auto max-w-6xl px-4 py-6 text-sm text-mist sm:px-8">© 2026 LemoLaunch</p>
       </div>
     </footer>
   );

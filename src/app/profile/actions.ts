@@ -21,7 +21,16 @@ const text = (formData: FormData, key: string) => {
   return typeof value === "string" ? value.trim() : "";
 };
 
-/** Saves name, headline, website and profile photo. */
+function isWebUrl(value: string): boolean {
+  try {
+    const url = new URL(value);
+    return url.protocol === "https:" || url.protocol === "http:";
+  } catch {
+    return false;
+  }
+}
+
+/** Saves name, headline, website, social links and profile photo. */
 export async function updateProfile(_previous: FormState, formData: FormData): Promise<FormState> {
   const user = await getCurrentUser();
   if (!user) return signedOut;
@@ -29,18 +38,20 @@ export async function updateProfile(_previous: FormState, formData: FormData): P
   const name = text(formData, "name");
   const headline = text(formData, "headline");
   const websiteUrl = text(formData, "websiteUrl");
+  const social = {
+    xUrl: text(formData, "xUrl"),
+    githubUrl: text(formData, "githubUrl"),
+    linkedinUrl: text(formData, "linkedinUrl"),
+  };
   const removeAvatar = formData.get("removeAvatar") === "on";
   const avatarFile = formData.get("avatar");
 
   const fieldErrors: Record<string, string> = {};
   if (!name || name.length > 60) fieldErrors.name = "Enter your name (60 characters or fewer).";
   if (headline.length > 120) fieldErrors.headline = "Keep your headline to 120 characters.";
-  if (websiteUrl) {
-    try {
-      const url = new URL(websiteUrl);
-      if (url.protocol !== "https:" && url.protocol !== "http:") throw new Error();
-    } catch {
-      fieldErrors.websiteUrl = "Enter the full address, starting with https://";
+  for (const [field, value] of Object.entries({ websiteUrl, ...social })) {
+    if (value && (value.length > 300 || !isWebUrl(value))) {
+      fieldErrors[field] = "Enter the full address, starting with https://";
     }
   }
 
@@ -57,7 +68,15 @@ export async function updateProfile(_previous: FormState, formData: FormData): P
 
   await db.user.update({
     where: { id: user.id },
-    data: { name, headline: headline || null, websiteUrl: websiteUrl || null, avatarUrl },
+    data: {
+      name,
+      headline: headline || null,
+      websiteUrl: websiteUrl || null,
+      xUrl: social.xUrl || null,
+      githubUrl: social.githubUrl || null,
+      linkedinUrl: social.linkedinUrl || null,
+      avatarUrl,
+    },
   });
   if (avatarUrl !== user.avatarUrl) await deleteUpload(user.avatarUrl);
 

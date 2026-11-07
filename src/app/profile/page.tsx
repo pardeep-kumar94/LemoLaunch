@@ -18,7 +18,7 @@ import { formatPrice } from "@/lib/payments";
 import { getMyProducts, type MyProduct } from "@/lib/profile";
 import { resumeCheckout } from "@/app/actions";
 
-export const metadata: Metadata = { title: "Your profile | LaunchPad", robots: { index: false } };
+export const metadata: Metadata = { title: "Your profile | LemoLaunch", robots: { index: false } };
 
 type Tab = "products" | "edit" | "account";
 
@@ -119,6 +119,9 @@ async function Profile({ searchParams }: { searchParams: PageProps<"/profile">["
                   name: user.name,
                   headline: user.headline,
                   websiteUrl: user.websiteUrl,
+                  xUrl: user.xUrl,
+                  githubUrl: user.githubUrl,
+                  linkedinUrl: user.linkedinUrl,
                   avatarUrl: user.avatarUrl,
                 }}
               />

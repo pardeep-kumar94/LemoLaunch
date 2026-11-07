@@ -1,4 +1,4 @@
-// Embed codes for the "Launched on LaunchPad" badge that makers add to their own sites.
+// Embed codes for the "Launched on LemoLaunch" badge that makers add to their own sites.
 // Shared by the badge route (server) and the badge picker (client), so no server-only imports.
 
 export const BADGE_THEMES = ["light", "yellow", "dark"] as const;
@@ -21,7 +21,7 @@ export function badgeUrls(origin: string, slug: string, theme: BadgeTheme) {
 
 export function badgeSnippets(origin: string, slug: string, theme: BadgeTheme) {
   const url = badgeUrls(origin, slug, theme);
-  const alt = "Launched on LaunchPad";
+  const alt = "Launched on LemoLaunch";
   return {
     html: `<a href="${url.page}" target="_blank" rel="noopener"><img src="${url.image}" alt="${alt}" width="${BADGE_WIDTH}" height="${BADGE_HEIGHT}" /></a>`,
     script: `<script src="${url.script}" data-product="${slug}" data-theme="${theme}" async></script>`,

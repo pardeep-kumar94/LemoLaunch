@@ -11,6 +11,7 @@ import { isUpcoming } from "@/lib/launches";
 import { createLaunchPassCheckout, paymentMode } from "@/lib/payments";
 import { checkPlatformLink, isPlatform, sortPlatforms } from "@/lib/platforms";
 import { publishSubmission } from "@/lib/publish";
+import { isPricingModel, MAX_FEATURE_LENGTH, MAX_FEATURES, MAX_TRIAL_DAYS } from "@/lib/product-page";
 import { checkUpload, storeUpload, toEmbedUrl } from "@/lib/uploads";
 import { ensureVisitorId } from "@/lib/visitor";
 
@@ -84,6 +85,9 @@ export type SubmitField =
   | "playStoreUrl"
   | "tagline"
   | "topicSlug"
+  | "pricingModel"
+  | "freeTrialDays"
+  | "features"
   | "launchDate"
   | "logo"
   | "gallery"
@@ -139,6 +143,25 @@ export async function submitLaunch(
     ? await db.topic.findUnique({ where: { slug: topicSlug }, select: { slug: true } })
     : null;
   if (!topic) errors.topicSlug = "Choose the category that fits best.";
+
+  const pricingModel = text("pricingModel");
+  if (!isPricingModel(pricingModel)) errors.pricingModel = "Choose how your product is priced.";
+  const trialText = text("freeTrialDays");
+  let freeTrialDays: number | null = null;
+  if (trialText && pricingModel !== "free") {
+    const days = Number(trialText);
+    if (!Number.isInteger(days) || days < 1 || days > MAX_TRIAL_DAYS) {
+      errors.freeTrialDays = `Enter a trial length from 1 to ${MAX_TRIAL_DAYS} days, or leave it empty.`;
+    } else freeTrialDays = days;
+  }
+  const features = formData
+    .getAll("features")
+    .map((f) => (typeof f === "string" ? f.trim() : ""))
+    .filter(Boolean);
+  if (features.length > MAX_FEATURES) errors.features = `List up to ${MAX_FEATURES} features.`;
+  else if (features.some((f) => f.length > MAX_FEATURE_LENGTH)) {
+    errors.features = `Keep each feature to ${MAX_FEATURE_LENGTH} characters.`;
+  }
 
   const description = text("description");
   if (description.length < 20 || description.length > 600) {
@@ -213,6 +236,9 @@ export async function submitLaunch(
       playStoreUrl: links.playStoreUrl ?? null,
       tagline,
       topicSlug: topic.slug,
+      pricingModel: isPricingModel(pricingModel) ? pricingModel : null,
+      freeTrialDays,
+      features,
       launchDate,
       logoUrl,
       galleryUrls,

@@ -43,3 +43,6 @@ next-env.d.ts
 
 # uploaded media (local dev storage)
 /uploads
+
+# brainstorm mockups
+.superpowers/

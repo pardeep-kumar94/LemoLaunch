@@ -2,7 +2,7 @@ import { readFile } from "node:fs/promises";
 import path from "node:path";
 import { BADGE_HEIGHT, BADGE_WIDTH, type BadgeTheme } from "@/lib/badge-snippets";
 
-// Draws the "Launched on LaunchPad" badge as an SVG. The logo is embedded as a data URI
+// Draws the "Launched on LemoLaunch" badge as an SVG. The logo is embedded as a data URI
 // because an SVG shown through <img> can't load other files.
 
 const THEMES: Record<
@@ -68,7 +68,7 @@ export async function renderBadge(theme: BadgeTheme, status: BadgeStatus): Promi
       : `<text x="210" y="32" text-anchor="middle" font-size="15" font-weight="700" fill="${t.ink}">${status.day}</text>`;
 
   return `<svg xmlns="http://www.w3.org/2000/svg" width="${BADGE_WIDTH}" height="${BADGE_HEIGHT}" viewBox="0 0 ${BADGE_WIDTH} ${BADGE_HEIGHT}" font-family="${FONT}">
-  <title>${status.kind === "launched" ? "Launched on LaunchPad" : "Launching on LaunchPad"}</title>
+  <title>${status.kind === "launched" ? "Launched on LemoLaunch" : "Launching on LemoLaunch"}</title>
   <rect x="5" y="5" width="244" height="50" rx="12" fill="${t.shadow}"/>
   <rect x="1" y="1" width="244" height="50" rx="12" fill="${t.bg}" stroke="${t.border}" stroke-width="2"/>
   <text x="14" y="18" font-size="11" font-weight="600" fill="${t.muted}">${status.kind === "launched" ? "Launched on" : "Launching on"}</text>

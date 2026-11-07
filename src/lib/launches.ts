@@ -210,6 +210,13 @@ export async function getProductBySlug(slug: string, visitorId: string | null) {
       appStoreUrl: true,
       playStoreUrl: true,
       makerId: true,
+      pricingModel: true,
+      freeTrialDays: true,
+      features: true,
+      primaryTopicSlug: true,
+      makerUser: {
+        select: { avatarUrl: true, headline: true, websiteUrl: true, xUrl: true, githubUrl: true, linkedinUrl: true },
+      },
     },
   });
   if (!row) return null;
@@ -223,6 +230,11 @@ export async function getProductBySlug(slug: string, visitorId: string | null) {
     appStoreUrl: row.appStoreUrl,
     playStoreUrl: row.playStoreUrl,
     makerId: row.makerId,
+    makerProfile: row.makerUser,
+    pricingModel: row.pricingModel,
+    freeTrialDays: row.freeTrialDays,
+    features: row.features,
+    primaryTopicSlug: row.primaryTopicSlug,
   };
 }
 
@@ -241,9 +253,9 @@ export async function getRelatedLaunches(
     },
     orderBy: [{ votes: { _count: "desc" } }, { createdAt: "asc" }],
     take: limit,
-    select: summarySelect(null),
+    select: { ...summarySelect(null), pricingModel: true, launchDate: true },
   });
-  return rows.map(toSummary);
+  return rows.map((row) => ({ ...toSummary(row), pricingModel: row.pricingModel, launchDate: row.launchDate }));
 }
 
 /** Every topic with its number of launched products and its top three logos. */

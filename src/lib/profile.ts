@@ -26,7 +26,7 @@ export type MyProduct = {
   submittedAt: Date;
 };
 
-/** Everything a user has put on LaunchPad: pending submissions and their own launches. */
+/** Everything a user has put on LemoLaunch: pending submissions and their own launches. */
 export async function getMyProducts(userId: string, today: Date): Promise<MyProduct[]> {
   const [submissions, products] = await Promise.all([
     db.submission.findMany({

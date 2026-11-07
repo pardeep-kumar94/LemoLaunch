@@ -1,7 +1,10 @@
 import Link from "next/link";
 import { signOut } from "@/app/auth-actions";
+import { NotificationBell } from "@/components/notification-bell";
 import { UserAvatar } from "@/components/user-avatar";
 import { getCurrentUser } from "@/lib/auth";
+import { startOfUtcDay } from "@/lib/dates";
+import { getNotifications } from "@/lib/notifications";
 
 // No display class here: callers choose (hidden on phones, inline-flex from sm up).
 const submitClass =
@@ -27,11 +30,21 @@ export async function HeaderAccount() {
     );
   }
 
+  const notifications = await getNotifications(user);
+  const today = startOfUtcDay(new Date()).getTime();
+
   return (
     <>
       <Link href="/submit" className={`${submitClass} hidden sm:inline-flex`}>
         Submit a launch
       </Link>
+      <NotificationBell
+        unreadCount={notifications.unreadCount}
+        items={notifications.items.map(({ launchDate, ...item }) => ({
+          ...item,
+          when: daysAgo(Math.round((today - launchDate.getTime()) / 86_400_000)),
+        }))}
+      />
       <details className="group relative">
         <summary
           aria-label={`Account menu for ${user.name}`}
@@ -71,6 +84,12 @@ export async function HeaderAccount() {
       </details>
     </>
   );
+}
+
+function daysAgo(days: number): string {
+  if (days <= 0) return "Launched today";
+  if (days === 1) return "Launched yesterday";
+  return `Launched ${days} days ago`;
 }
 
 export function HeaderAccountFallback() {

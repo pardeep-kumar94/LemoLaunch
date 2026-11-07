@@ -62,6 +62,10 @@ export type CurrentUser = {
   avatarUrl: string | null;
   headline: string | null;
   websiteUrl: string | null;
+  xUrl: string | null;
+  githubUrl: string | null;
+  linkedinUrl: string | null;
+  notificationsSeenAt: Date | null;
   createdAt: Date;
 };
 
@@ -81,6 +85,10 @@ export const getCurrentUser = cache(async (): Promise<CurrentUser | null> => {
           avatarUrl: true,
           headline: true,
           websiteUrl: true,
+          xUrl: true,
+          githubUrl: true,
+          linkedinUrl: true,
+          notificationsSeenAt: true,
           createdAt: true,
         },
       },

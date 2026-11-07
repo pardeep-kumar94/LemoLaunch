@@ -3,8 +3,8 @@ import { addUtcDays, startOfUtcDay } from "../src/lib/dates";
 
 // Sample launches dated relative to the day you run the seed, so the homepage
 // always has a "today", a week of history and an upcoming "tomorrow".
-// Re-running the seed replaces all products, topics, votes and comments.
-// Real accounts, subscribers and submissions are left alone.
+// Re-running the seed replaces the sample products (with their votes, comments and
+// reviews). Real launches, accounts, subscribers and submissions are left alone.
 
 const db = new PrismaClient();
 
@@ -103,6 +103,99 @@ const comments: [string, number, string, number][] = [
   ["stackpad", 3, "Diffing responses across days caught a breaking API change for us.", 28],
 ];
 
+// Pricing for each product. Anything not listed is freemium.
+const pricingFor: Record<string, { model: "free" | "freemium" | "paid"; trialDays?: number }> = {
+  driftwood: { model: "freemium", trialDays: 14 },
+  patchbay: { model: "paid", trialDays: 14 },
+  murmur: { model: "freemium" },
+  sonar: { model: "paid", trialDays: 30 },
+  kiln: { model: "free" },
+  tallyho: { model: "free" },
+  ferrylight: { model: "paid" },
+  orbitdesk: { model: "paid", trialDays: 21 },
+  stackpad: { model: "free" },
+  quarry: { model: "paid", trialDays: 14 },
+  inkwell: { model: "free" },
+  "ledger-lane": { model: "paid", trialDays: 30 },
+  moneta: { model: "freemium" },
+  "harbor-logs": { model: "paid", trialDays: 14 },
+  "pebble-books": { model: "paid", trialDays: 7 },
+};
+
+// Key features shown as a checklist on product pages.
+const featuresFor: Record<string, string[]> = {
+  driftwood: [
+    "Shared map everyone in the group can edit",
+    "Vote on pins to settle plans",
+    "Day-by-day itinerary from the agreed pins",
+    "Notes, links and photos on every pin",
+    "Works on web, iPhone and Android",
+  ],
+  patchbay: [
+    "Receive webhooks from any service",
+    "Reshape payloads with a visual mapper",
+    "Automatic retries with backoff",
+    "Replayable log of every delivery",
+  ],
+  murmur: [
+    "Transcribes voice memos as you record",
+    "Tidy summaries with action items",
+    "Search across every memo",
+  ],
+  orbitdesk: [
+    "One shared inbox with clear owners",
+    "Saved replies for common questions",
+    "Flat pricing, no per-seat fees",
+    "Email and chat in one place",
+  ],
+  quarry: [
+    "Connects to wikis, drives and chat",
+    "Every answer links to its source",
+    "Respects each tool's permissions",
+  ],
+  ferrylight: [
+    "Offline ferry timetables",
+    "Port maps and walking routes",
+    "Whole island groups in one download",
+  ],
+};
+
+// Sample makers with accounts, so Follow and notifications work. They can't sign in either.
+const makerAccounts: Record<string, { email: string; headline: string; xUrl?: string; githubUrl?: string; linkedinUrl?: string; websiteUrl?: string }> = {
+  "Maya Lindqvist": {
+    email: "maya@example.com",
+    headline: "Founder, Driftwood",
+    xUrl: "https://x.com/example",
+    linkedinUrl: "https://www.linkedin.com/in/example",
+    websiteUrl: "https://example.com/driftwood",
+  },
+  "Dev Raman": {
+    email: "dev@example.com",
+    headline: "Building developer tools",
+    githubUrl: "https://github.com/example",
+    xUrl: "https://x.com/example",
+  },
+  "Ines Duarte": {
+    email: "ines@example.com",
+    headline: "Support tools for small teams",
+    linkedinUrl: "https://www.linkedin.com/in/example",
+  },
+};
+
+// [product slug, member index, stars, review text, hours ago]
+const reviews: [string, number, number, string, number][] = [
+  ["driftwood", 0, 5, "Planned a group trip in one evening. The pin voting is brilliant.", 5],
+  ["driftwood", 1, 4, "Great for groups. I'd love a calendar export.", 3],
+  ["driftwood", 3, 5, "", 1],
+  ["patchbay", 2, 5, "Replaced two small services with this. The replay log saved me twice already.", 6],
+  ["patchbay", 4, 4, "Solid. The mapper takes a minute to learn.", 2],
+  ["murmur", 0, 4, "Summaries are tidy and the search is fast.", 4],
+  ["ferrylight", 1, 5, "Worked flawlessly offline across the islands.", 60],
+  ["ferrylight", 4, 4, "", 40],
+  ["orbitdesk", 3, 5, "Exactly the right size for a two-person support team.", 28],
+  ["quarry", 2, 3, "Good answers, but setup took a while.", 70],
+];
+
 // Keyed by day offset from today. Days -4 and -6 intentionally have no launches.
 const launches: Record<number, SeedProduct[]> = {
   [-5]: [
@@ -153,10 +246,8 @@ function slugify(name: string): string {
 }
 
 async function main() {
-  await db.vote.deleteMany();
-  await db.comment.deleteMany();
-  await db.product.deleteMany();
-  await db.topic.deleteMany();
+  const sampleSlugs = Object.values(launches).flat().map((p) => slugify(p.name));
+  await db.product.deleteMany({ where: { slug: { in: sampleSlugs } } });
 
   const memberIds: string[] = [];
   for (const member of members) {
@@ -170,7 +261,18 @@ async function main() {
   }
 
   for (const [slug, name] of Object.entries(topics)) {
-    await db.topic.create({ data: { slug, name } });
+    await db.topic.upsert({ where: { slug }, create: { slug, name }, update: { name } });
+  }
+
+  const makerIds = new Map<string, string>();
+  for (const [name, { email, ...profile }] of Object.entries(makerAccounts)) {
+    const user = await db.user.upsert({
+      where: { email },
+      create: { name, email, passwordHash: "!", ...profile },
+      update: { name, ...profile },
+      select: { id: true },
+    });
+    makerIds.set(name, user.id);
   }
 
   const today = startOfUtcDay(new Date());
@@ -200,6 +302,11 @@ async function main() {
           featuredUntil: featured.has(product.name) ? addUtcDays(launchDate, 6) : null,
           launchDate,
           topics: { connect: product.topics.map((t) => ({ slug: t })) },
+          primaryTopicSlug: product.topics[0],
+          pricingModel: pricingFor[slug]?.model ?? "freemium",
+          freeTrialDays: pricingFor[slug]?.trialDays ?? null,
+          features: featuresFor[slug] ?? [],
+          makerId: makerIds.get(product.maker) ?? null,
         },
       });
 
@@ -224,6 +331,15 @@ async function main() {
         body,
         createdAt: new Date(Date.now() - hoursAgo * 60 * 60 * 1000),
       },
+    });
+  }
+
+  for (const [slug, member, rating, body, hoursAgo] of reviews) {
+    const product = await db.product.findUnique({ where: { slug }, select: { id: true } });
+    if (!product) continue;
+    const at = new Date(Date.now() - hoursAgo * 60 * 60 * 1000);
+    await db.review.create({
+      data: { productId: product.id, userId: memberIds[member], rating, body, createdAt: at },
     });
   }
 

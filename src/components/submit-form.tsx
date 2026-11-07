@@ -5,6 +5,20 @@ import Link from "next/link";
 import { submitLaunch, type SubmitField, type SubmitLaunchState } from "@/app/actions";
 import { CheckIcon, GlobeIcon, PhoneIcon } from "@/components/icons";
 import { PLATFORMS, platformLabels, type Platform } from "@/lib/platforms";
+import {
+  MAX_FEATURE_LENGTH,
+  MAX_FEATURES,
+  MAX_TRIAL_DAYS,
+  PRICING_MODELS,
+  pricingLabels,
+  type PricingModel,
+} from "@/lib/product-page";
+
+const pricingHints: Record<PricingModel, string> = {
+  free: "Everything is free",
+  freemium: "Free plan, paid upgrades",
+  paid: "Paid plans only",
+};
 
 const initialState: SubmitLaunchState = { status: "idle" };
 
@@ -47,6 +61,8 @@ export function SubmitForm({
   const [platforms, setPlatforms] = useState<Platform[]>(["web"]);
   const [plan, setPlan] = useState<"free" | "pass">("free");
   const [description, setDescription] = useState("");
+  const [pricing, setPricing] = useState<PricingModel | null>(null);
+  const [featureCount, setFeatureCount] = useState(3);
   const [videoFile, setVideoFile] = useState<File | null>(null);
   const [clientErrors, setClientErrors] = useState<Partial<Record<SubmitField, string>>>({});
   const logoPreview = usePreviews(logo);
@@ -91,6 +107,7 @@ export function SubmitForm({
     const found: Partial<Record<SubmitField, string>> = {};
     if (description.trim().length < 20) found.description = "Describe your product in 20 to 600 characters.";
     if (platforms.length === 0) found.platforms = "Choose at least one: website, iPhone app or Android app.";
+    if (!pricing) found.pricingModel = "Choose how your product is priced.";
     if (logo.length === 0) found.logo = "Add your product's logo.";
     else if (logo[0].size > 5 * MB) found.logo = "Images can be up to 5 MB.";
     if (gallery.length === 0) found.gallery = "Add at least one screenshot.";
@@ -270,6 +287,74 @@ export function SubmitForm({
             </div>
           )}
         </div>
+      </fieldset>
+
+      <fieldset className="grid gap-6 border-t-2 border-line pt-7">
+        <legend className="mb-4 font-display text-xl font-extrabold">Pricing and features</legend>
+        <fieldset className="grid gap-3" aria-describedby={errors.pricingModel ? "pricingModel-error" : undefined}>
+          <legend className="mb-1.5 font-semibold">How is it priced?</legend>
+          <div className="grid gap-3 sm:grid-cols-3">
+            {PRICING_MODELS.map((model) => {
+              const checked = pricing === model;
+              return (
+                <label
+                  key={model}
+                  className={`flex cursor-pointer flex-col rounded-[14px] border-2 p-3.5 transition-colors has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-offset-2 has-[:focus-visible]:outline-ink ${
+                    checked ? "border-ink bg-signal-wash" : "border-line bg-paper hover:border-ink/50"
+                  }`}
+                >
+                  <input
+                    type="radio"
+                    name="pricingModel"
+                    value={model}
+                    checked={checked}
+                    onChange={() => setPricing(model)}
+                    className="sr-only"
+                  />
+                  <span className="font-bold">{pricingLabels[model]}</span>
+                  <span className="text-xs text-mist">{pricingHints[model]}</span>
+                </label>
+              );
+            })}
+          </div>
+          {errors.pricingModel && (
+            <p id="pricingModel-error" className="text-sm font-semibold text-danger">{errors.pricingModel}</p>
+          )}
+        </fieldset>
+        {(pricing === "freemium" || pricing === "paid") && (
+          <Field id="freeTrialDays" label="Free trial (optional)" hint="Number of days, if you offer a trial." error={errors.freeTrialDays}>
+            <input id="freeTrialDays" name="freeTrialDays" type="number" inputMode="numeric" min={1} max={MAX_TRIAL_DAYS} placeholder="e.g. 14" aria-invalid={!!errors.freeTrialDays} aria-describedby={errors.freeTrialDays ? "freeTrialDays-error" : "freeTrialDays-hint"} className={`${inputClass} sm:max-w-48`} />
+          </Field>
+        )}
+        <fieldset className="grid gap-2.5" aria-describedby={errors.features ? "features-error" : "features-hint"}>
+          <legend className="mb-1 font-semibold">Key features (optional)</legend>
+          {Array.from({ length: featureCount }, (_, i) => (
+            <input
+              key={i}
+              name="features"
+              maxLength={MAX_FEATURE_LENGTH}
+              aria-label={`Feature ${i + 1}`}
+              placeholder={i === 0 ? "e.g. Shared map everyone can edit" : ""}
+              className={inputClass}
+            />
+          ))}
+          {featureCount < MAX_FEATURES && (
+            <button
+              type="button"
+              onClick={() => setFeatureCount((n) => Math.min(n + 1, MAX_FEATURES))}
+              className="justify-self-start text-sm font-semibold underline decoration-pop decoration-2 underline-offset-4"
+            >
+              Add another feature
+            </button>
+          )}
+          {errors.features ? (
+            <p id="features-error" className="text-sm font-semibold text-danger">{errors.features}</p>
+          ) : (
+            <p id="features-hint" className="text-sm text-mist">
+              Up to {MAX_FEATURES}, one short line each. Shown as a checklist on your launch page.
+            </p>
+          )}
+        </fieldset>
       </fieldset>
 
       <fieldset className="grid gap-6 border-t-2 border-line pt-7">

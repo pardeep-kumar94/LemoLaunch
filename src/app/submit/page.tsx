@@ -10,7 +10,7 @@ import { getCurrentUser } from "@/lib/auth";
 import { getTopics } from "@/lib/launches";
 import { formatPrice, paymentMode } from "@/lib/payments";
 
-export const metadata: Metadata = { title: "Submit a launch | LaunchPad" };
+export const metadata: Metadata = { title: "Submit a launch | LemoLaunch" };
 
 export default function SubmitPage() {
   return (

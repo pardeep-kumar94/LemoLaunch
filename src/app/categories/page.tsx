@@ -5,14 +5,14 @@ import { CategoryGrid, PageBand, SubmitCallout } from "@/components/sections";
 import { startOfUtcDay } from "@/lib/dates";
 import { getTopicDirectory } from "@/lib/launches";
 
-export const metadata: Metadata = { title: "Categories | LaunchPad" };
+export const metadata: Metadata = { title: "Categories | LemoLaunch" };
 
 export default function CategoriesPage() {
   return (
     <main>
       <PageBand
         title="Categories"
-        description="Every launch on LaunchPad, grouped by what it helps you do."
+        description="Every launch on LemoLaunch, grouped by what it helps you do."
       />
       <div className="mx-auto max-w-6xl px-4 py-10 sm:px-8">
         <Suspense fallback={<GridSkeleton />}>

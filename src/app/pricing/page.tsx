@@ -5,7 +5,7 @@ import { PageBand, SubmitCallout } from "@/components/sections";
 import { formatPrice, LAUNCH_PASS } from "@/lib/payments";
 
 export const metadata: Metadata = {
-  title: "Pricing | LaunchPad",
+  title: "Pricing | LemoLaunch",
   description: "Launch for free, or pick your own launch day and get a featured spot with a Launch Pass.",
 };
 

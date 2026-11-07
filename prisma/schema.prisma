@@ -38,12 +38,22 @@ model Product {
   makerId     String?
   /// Launch Pass: shown in the "Featured launches" panel until this UTC day (inclusive).
   featuredUntil DateTime? @db.Date
+  /// "free", "freemium" or "paid". Null for products from before pricing was asked.
+  pricingModel  String?
+  /// Length of the free trial in days, for freemium and paid products.
+  freeTrialDays Int?
+  /// The maker's key features, up to 6 short lines.
+  features      String[] @default([])
+  /// The category the maker picked. Topics are unordered, so this marks the main one.
+  primaryTopicSlug String?
 
   makerUser  User?       @relation(fields: [makerId], references: [id], onDelete: SetNull)
   submission Submission?
   topics    Topic[]
   votes    Vote[]
   comments Comment[]
+  reviews  Review[]
+  reports  Report[]
 
   @@index([launchDate])
 }
@@ -87,6 +97,10 @@ model Submission {
   tagline     String
   description String   @default("")
   topicSlug   String?
+  /// "free", "freemium" or "paid".
+  pricingModel  String?
+  freeTrialDays Int?
+  features      String[] @default([])
   /// Launch Pass makers pick their day; free launches are scheduled by the reviewer.
   launchDate  DateTime? @db.Date
   /// "free" or "pass".
@@ -128,12 +142,67 @@ model User {
   /// Short line shown under the name, e.g. "Building tools for remote teams".
   headline     String?
   websiteUrl   String?
+  xUrl         String?
+  githubUrl    String?
+  linkedinUrl  String?
+  /// Notifications for launches on or before this moment count as read.
+  notificationsSeenAt DateTime?
   createdAt    DateTime @default(now())
 
   sessions    Session[]
   comments    Comment[]
   submissions Submission[]
   products    Product[]
+  reviews     Review[]
+  reports     Report[]
+  following   Follow[] @relation("follower")
+  followers   Follow[] @relation("maker")
+}
+
+/// A 1-5 star review. One per user per product; submitting again updates it.
+model Review {
+  id        String   @id @default(cuid())
+  productId String
+  userId    String
+  rating    Int
+  body      String   @default("")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([productId, userId])
+  @@index([productId, createdAt])
+}
+
+/// A visitor flagging a product. Read in Prisma Studio; nothing in the app shows them.
+model Report {
+  id        String   @id @default(cuid())
+  productId String
+  userId    String?
+  /// "spam", "broken_link", "misleading", "offensive" or "other".
+  reason    String
+  details   String   @default("")
+  createdAt DateTime @default(now())
+
+  product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+  user    User?   @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([productId])
+}
+
+/// A user following a maker, to be notified when they launch.
+model Follow {
+  followerId String
+  makerId    String
+  createdAt  DateTime @default(now())
+
+  follower User @relation("follower", fields: [followerId], references: [id], onDelete: Cascade)
+  maker    User @relation("maker", fields: [makerId], references: [id], onDelete: Cascade)
+
+  @@id([followerId, makerId])
+  @@index([makerId])
 }
 
 /// A signed-in browser. The id is the SHA-256 of the cookie token, never the token itself.

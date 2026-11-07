@@ -5,10 +5,24 @@ import { updateProfile, type FormState } from "@/app/profile/actions";
 import { UserAvatar } from "@/components/user-avatar";
 import { Field, FormStatus, inputClass, saveButtonClass } from "./form-bits";
 
+const socialFields = [
+  { name: "xUrl", label: "X (Twitter)", placeholder: "https://x.com/yourname" },
+  { name: "githubUrl", label: "GitHub", placeholder: "https://github.com/yourname" },
+  { name: "linkedinUrl", label: "LinkedIn", placeholder: "https://www.linkedin.com/in/yourname" },
+] as const;
+
 export function ProfileForm({
   user,
 }: {
-  user: { name: string; headline: string | null; websiteUrl: string | null; avatarUrl: string | null };
+  user: {
+    name: string;
+    headline: string | null;
+    websiteUrl: string | null;
+    xUrl: string | null;
+    githubUrl: string | null;
+    linkedinUrl: string | null;
+    avatarUrl: string | null;
+  };
 }) {
   const [state, formAction, pending] = useActionState<FormState, FormData>(updateProfile, { status: "idle" });
   const [, startTransition] = useTransition();
@@ -132,6 +146,22 @@ export function ProfileForm({
           className={inputClass}
         />
       </Field>
+
+      {socialFields.map(({ name, label, placeholder }) => (
+        <Field key={name} id={name} label={label} hint="Optional. Shown on your launch pages." error={errors[name]}>
+          <input
+            id={name}
+            name={name}
+            type="url"
+            inputMode="url"
+            defaultValue={user[name] ?? ""}
+            placeholder={placeholder}
+            aria-invalid={!!errors[name]}
+            aria-describedby={errors[name] ? `${name}-error` : `${name}-hint`}
+            className={inputClass}
+          />
+        </Field>
+      ))}
 
       <FormStatus status={state.status} message={state.message} />
       <button type="submit" disabled={pending} className={saveButtonClass}>

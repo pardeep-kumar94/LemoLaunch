@@ -9,7 +9,7 @@ import { startOfUtcDay } from "@/lib/dates";
 import { getTopicDirectory, searchLaunches } from "@/lib/launches";
 import { readVisitorId } from "@/lib/visitor";
 
-export const metadata: Metadata = { title: "Search | LaunchPad" };
+export const metadata: Metadata = { title: "Search | LemoLaunch" };
 
 export default function SearchPage({ searchParams }: PageProps<"/search">) {
   return (

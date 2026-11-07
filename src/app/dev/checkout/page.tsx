@@ -7,7 +7,7 @@ import { db } from "@/lib/db";
 import { formatPrice, paymentMode } from "@/lib/payments";
 import { completeSimulatedPayment } from "./actions";
 
-export const metadata: Metadata = { title: "Simulated checkout | LaunchPad", robots: { index: false } };
+export const metadata: Metadata = { title: "Simulated checkout | LemoLaunch", robots: { index: false } };
 
 export default function SimulatedCheckoutPage({ searchParams }: PageProps<"/dev/checkout">) {
   return (

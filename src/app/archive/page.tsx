@@ -23,7 +23,7 @@ import {
 import { isPlatform, platformLabels } from "@/lib/platforms";
 import { readVisitorId } from "@/lib/visitor";
 
-export const metadata: Metadata = { title: "Archive | LaunchPad" };
+export const metadata: Metadata = { title: "Archive | LemoLaunch" };
 
 type Range = "yesterday" | "week" | "month";
 
