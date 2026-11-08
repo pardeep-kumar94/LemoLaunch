@@ -5,12 +5,14 @@ import Link from "next/link";
 import { connection } from "next/server";
 import { ArrowRight } from "lucide-react";
 import { VerifiedBadge } from "@/components/badges";
-import { SubmitForm } from "@/components/submit-form";
+import { SubmitForm, type FastTrackOptions } from "@/components/submit-form";
 import { Button } from "@/components/ui/button";
-import { addUtcDays, formatLaunchDay, startOfUtcDay, toDayParam } from "@/lib/dates";
+import { formatLaunchDay, startOfUtcDay, toDayParam } from "@/lib/dates";
 import { getCurrentUser } from "@/lib/auth";
 import { getTopics } from "@/lib/launches";
-import { formatPrice, paymentMode } from "@/lib/payments";
+import { formatSlotTime, getFastTrackDays } from "@/lib/fast-track";
+import { paymentMode } from "@/lib/payments";
+import { FAST_TRACK, formatMoney } from "@/lib/pricing";
 import { DAILY_LAUNCH_LIMIT, launchQueue } from "@/lib/publish";
 
 export const metadata: Metadata = pageMetadata({
@@ -46,9 +48,23 @@ async function Form() {
   if (!user) return <SignInRequired />;
 
   await connection();
-  const today = startOfUtcDay(new Date());
-  const tomorrow = addUtcDays(today, 1);
-  const [topics, queue] = await Promise.all([getTopics(), launchQueue(today)]);
+  const now = new Date();
+  const today = startOfUtcDay(now);
+  const [topics, queue, fastDays] = await Promise.all([getTopics(), launchQueue(today), getFastTrackDays(now)]);
+  const fastTrack: FastTrackOptions = {
+    available: paymentMode() !== "off",
+    price: formatMoney(FAST_TRACK.priceCents),
+    pinnedHours: FAST_TRACK.pinnedHours,
+    days: fastDays.map((d, i) => {
+      const names = formatLaunchDay(d.day);
+      return {
+        key: toDayParam(d.day),
+        label: i === 0 ? "Today" : `${names.weekday.slice(0, 3)} ${d.day.getUTCDate()}`,
+        longLabel: `${names.weekday}, ${names.day}`,
+        slots: d.slots.map((slot) => ({ iso: slot.start.toISOString(), time: formatSlotTime(slot.start), status: slot.status })),
+      };
+    }),
+  };
   const { weekday, day } = formatLaunchDay(queue.day);
   // Zero-based: the new launch sits right after the launches already on its day.
   const seat = queue.onDay;
@@ -60,9 +76,7 @@ async function Form() {
       </p>
       <SubmitForm
         topics={topics}
-        minLaunchDate={toDayParam(tomorrow)}
-        passAvailable={paymentMode() !== "off"}
-        passPrice={formatPrice()}
+        fastTrack={fastTrack}
         queue={{ launchDay: `${weekday}, ${day}`, ahead: queue.ahead, seat, dailyLimit: DAILY_LAUNCH_LIMIT }}
         aside={<HowItWorks />}
       />

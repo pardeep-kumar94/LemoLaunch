@@ -34,7 +34,8 @@ export function LaunchCard({
   /** Paid placement; shown with a Promoted label and no rank. */
   promoted?: boolean;
 }) {
-  const label = pinned ? "Fast Track" : launch.featured ? "Featured" : null;
+  // The retired Launch Pass's "featured" flag no longer shows; Fast Track and Promoted replace it.
+  const label = pinned ? "Fast Track" : null;
   // Unranked lists (search results) drop the rank column entirely.
   const showRank = rank !== undefined || Boolean(pinned) || promoted;
   return (

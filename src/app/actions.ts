@@ -5,10 +5,11 @@ import { redirect } from "next/navigation";
 import { Prisma } from "@prisma/client";
 import { db } from "@/lib/db";
 import { siteOrigin } from "@/lib/origin";
-import { formatLaunchDay, parseDayParam, startOfUtcDay } from "@/lib/dates";
+import { formatLaunchDay } from "@/lib/dates";
 import { getCurrentUser } from "@/lib/auth";
-import { isUpcoming } from "@/lib/launches";
-import { createLaunchPassCheckout, paymentMode } from "@/lib/payments";
+import { formatSlotTime, isSlotOpen } from "@/lib/fast-track";
+import { isProductUpcoming } from "@/lib/launches";
+import { createFastTrackCheckout, paymentMode } from "@/lib/payments";
 import { checkPlatformLink, isPlatform, sortPlatforms } from "@/lib/platforms";
 import { publishSubmission } from "@/lib/publish";
 import { isPricingModel, MAX_FEATURE_LENGTH, MAX_FEATURES, MAX_TRIAL_DAYS } from "@/lib/product-page";
@@ -25,11 +26,11 @@ export async function toggleVote(productId: string): Promise<VoteResult> {
 
   const product = await db.product.findUnique({
     where: { id: productId },
-    select: { launchDate: true },
+    select: { launchDate: true, launchAt: true },
   });
   if (!product) return { ok: false, error: "That product couldn't be found." };
-  if (isUpcoming(product.launchDate, startOfUtcDay(new Date()))) {
-    return { ok: false, error: "Voting opens on launch day." };
+  if (isProductUpcoming(product)) {
+    return { ok: false, error: "Voting opens when it goes live." };
   }
 
   const visitorId = await ensureVisitorId();
@@ -88,19 +89,19 @@ export type SubmitField =
   | "pricingModel"
   | "freeTrialDays"
   | "features"
-  | "launchDate"
+  | "launchAt"
   | "logo"
   | "gallery"
   | "video";
 
 export type SubmitLaunchState =
   | { status: "idle" }
-  | { status: "submitted"; name: string; slug: string; launchDay: string }
+  | { status: "submitted"; name: string; slug: string; launchDay: string; launchTime: string | null }
   | { status: "error"; errors: Partial<Record<SubmitField | "form", string>> };
 
 const MAX_SCREENSHOTS = 4;
 
-/** Publishes a launch. Free launches are scheduled straight away; a Launch Pass goes to checkout first. */
+/** Publishes a launch. Free launches are scheduled straight away; Fast Track goes to checkout first. */
 export async function submitLaunch(
   _previous: SubmitLaunchState,
   formData: FormData,
@@ -169,14 +170,19 @@ export async function submitLaunch(
     errors.description = "Describe your product in 20 to 600 characters.";
   }
 
-  // Launch Pass makers pick their day; free launches join the queue for the next day with room.
-  const plan = text("plan") === "pass" ? "pass" : "free";
-  if (plan === "pass" && paymentMode() === "off") {
-    errors.plan = "The Launch Pass isn't available right now. Choose the free launch instead.";
-  }
-  const launchDate = plan === "pass" ? parseDayParam(text("launchDate")) : null;
-  if (plan === "pass" && (!launchDate || launchDate.getTime() <= startOfUtcDay(new Date()).getTime())) {
-    errors.launchDate = "Pick a launch day from tomorrow onwards.";
+  // Free launches join the queue for the next day with a free seat; Fast Track makers pick a slot.
+  const plan = text("plan") === "fast" ? "fast" : "free";
+  let launchAt: Date | null = null;
+  if (plan === "fast") {
+    if (paymentMode() === "off") {
+      errors.plan = "Fast Track isn't available right now. Choose the free launch instead.";
+    } else {
+      const picked = new Date(text("launchAt"));
+      if (Number.isNaN(picked.getTime())) errors.launchAt = "Pick a time slot for your Fast Track launch.";
+      else if (!(await isSlotOpen(picked, new Date()))) {
+        errors.launchAt = "That slot was just taken or has passed. Pick another one.";
+      } else launchAt = picked;
+    }
   }
 
   const [logoUrl] = urls("logoUrl");
@@ -214,8 +220,8 @@ export async function submitLaunch(
       name,
       description,
       plan,
-      status: plan === "pass" ? "awaiting_payment" : "pending",
-      paymentStatus: plan === "pass" ? "awaiting" : "none",
+      status: plan === "fast" ? "awaiting_payment" : "pending",
+      paymentStatus: plan === "fast" ? "awaiting" : "none",
       platforms,
       websiteUrl: links.websiteUrl ?? null,
       appStoreUrl: links.appStoreUrl ?? null,
@@ -225,16 +231,16 @@ export async function submitLaunch(
       pricingModel: isPricingModel(pricingModel) ? pricingModel : null,
       freeTrialDays,
       features,
-      launchDate,
+      launchAt,
       logoUrl,
       galleryUrls,
       videoUrl,
     },
   });
 
-  if (plan === "pass") {
+  if (plan === "fast") {
     // Saved first, so an abandoned checkout can be resumed from the profile page.
-    const checkoutUrl = await createLaunchPassCheckout({
+    const checkoutUrl = await createFastTrackCheckout({
       submissionId: submission.id,
       customer: { email: user.email, name: user.name },
       origin: await siteOrigin(),
@@ -246,10 +252,16 @@ export async function submitLaunch(
     return { status: "error", errors: { form: "Your launch was saved but couldn't be scheduled. Try again from My products." } };
   }
   const { weekday, day } = formatLaunchDay(published.launchDate);
-  return { status: "submitted", name, slug: published.slug, launchDay: `${weekday}, ${day}` };
+  return {
+    status: "submitted",
+    name,
+    slug: published.slug,
+    launchDay: `${weekday}, ${day}`,
+    launchTime: published.launchAt ? formatSlotTime(published.launchAt) : null,
+  };
 }
 
-/** Restarts checkout for one of the signed-in user's unpaid Launch Pass submissions. */
+/** Restarts checkout for one of the signed-in user's unpaid Fast Track submissions. */
 export async function resumeCheckout(submissionId: string) {
   const user = await getCurrentUser();
   if (!user) redirect("/signin?next=/profile");
@@ -258,7 +270,7 @@ export async function resumeCheckout(submissionId: string) {
     select: { id: true },
   });
   if (!submission) redirect("/profile");
-  const checkoutUrl = await createLaunchPassCheckout({
+  const checkoutUrl = await createFastTrackCheckout({
     submissionId: submission.id,
     customer: { email: user.email, name: user.name },
     origin: await siteOrigin(),

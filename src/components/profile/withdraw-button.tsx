@@ -34,7 +34,7 @@ export function WithdrawButton({
   return (
     <div className="flex flex-wrap items-center gap-2" role="group" aria-label={`${label} ${name}?`}>
       <span className="text-sm font-medium">
-        {label} {name}? Its files are deleted{refundNote ? " and your Launch Pass is refunded" : ""}.
+        {label} {name}? Its files are deleted{refundNote ? " and your payment is refunded" : ""}.
       </span>
       <Button
         type="button"

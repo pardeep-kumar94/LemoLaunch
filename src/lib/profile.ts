@@ -1,6 +1,7 @@
 import { db } from "@/lib/db";
 import { isSameUtcDay } from "@/lib/dates";
-import { isUpcoming } from "@/lib/launches";
+import { isProductUpcoming } from "@/lib/launches";
+import type { BoostPlacement } from "@/lib/pricing";
 
 export type MyProduct = {
   key: string;
@@ -11,12 +12,16 @@ export type MyProduct = {
   tagline: string;
   logoUrl: string | null;
   accent: string;
-  /** Null for an unpaid Launch Pass that hasn't picked up its day yet. */
   launchDate: Date | null;
+  /** Fast Track: the exact go-live time. */
+  launchAt: Date | null;
   status: "awaiting_payment" | "scheduled" | "live" | "launched";
-  plan: "free" | "pass";
-  /** Paid, refunded or refund_failed, for Launch Pass submissions. */
+  /** "pass" is the retired Launch Pass, on older launches. */
+  plan: "free" | "fast" | "pass";
+  /** Paid, refunded or refund_failed, for paid submissions. */
   paymentStatus: string;
+  /** Paid boosts that are running or still to come. */
+  boosts: { placement: BoostPlacement; startDate: Date; endDate: Date }[];
   reviewNote: string | null;
   screenshots: number;
   hasVideo: boolean;
@@ -39,6 +44,7 @@ export async function getMyProducts(userId: string, today: Date): Promise<MyProd
         tagline: true,
         logoUrl: true,
         launchDate: true,
+        launchAt: true,
         galleryUrls: true,
         videoUrl: true,
         platforms: true,
@@ -60,12 +66,18 @@ export async function getMyProducts(userId: string, today: Date): Promise<MyProd
         logoUrl: true,
         accent: true,
         launchDate: true,
+        launchAt: true,
         galleryUrls: true,
         videoUrl: true,
         platforms: true,
         createdAt: true,
         featuredUntil: true,
-        submission: { select: { paymentStatus: true } },
+        submission: { select: { paymentStatus: true, plan: true } },
+        boosts: {
+          where: { paymentStatus: "paid", endDate: { gte: today } },
+          orderBy: { startDate: "asc" },
+          select: { placement: true, startDate: true, endDate: true },
+        },
         _count: { select: { votes: true, comments: true } },
       },
     }),
@@ -83,8 +95,10 @@ export async function getMyProducts(userId: string, today: Date): Promise<MyProd
         logoUrl: s.logoUrl,
         accent: "#7a6152",
         launchDate: s.launchDate,
+        launchAt: s.launchAt,
         status: "awaiting_payment",
-        plan: s.plan === "pass" ? "pass" : "free",
+        plan: s.plan === "fast" ? "fast" : s.plan === "pass" ? "pass" : "free",
+        boosts: [],
         paymentStatus: s.paymentStatus,
         reviewNote: s.reviewNote,
         screenshots: s.galleryUrls.length,
@@ -106,10 +120,12 @@ export async function getMyProducts(userId: string, today: Date): Promise<MyProd
         logoUrl: p.logoUrl,
         accent: p.accent,
         launchDate: p.launchDate,
-        plan: p.featuredUntil ? "pass" : "free",
+        launchAt: p.launchAt,
+        plan: p.submission?.plan === "fast" ? "fast" : p.featuredUntil ? "pass" : "free",
+        boosts: p.boosts.map((b) => ({ ...b, placement: b.placement as BoostPlacement })),
         paymentStatus: p.submission?.paymentStatus ?? "none",
         reviewNote: null,
-        status: isUpcoming(p.launchDate, today)
+        status: isProductUpcoming(p)
           ? "scheduled"
           : isSameUtcDay(p.launchDate, today)
             ? "live"

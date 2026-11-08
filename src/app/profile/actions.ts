@@ -155,7 +155,7 @@ export async function changePassword(_previous: FormState, formData: FormData): 
   };
 }
 
-/** Deletes one of the signed-in user's unpaid Launch Pass submissions. */
+/** Deletes one of the signed-in user's unpaid Fast Track submissions. */
 export async function withdrawSubmission(submissionId: string): Promise<FormState> {
   const user = await getCurrentUser();
   if (!user) return signedOut;
@@ -173,14 +173,19 @@ export async function withdrawSubmission(submissionId: string): Promise<FormStat
   return { status: "saved", message: "Deleted." };
 }
 
-/** Cancels one of the signed-in user's launches before it goes live, refunding a Launch Pass. */
+/** Cancels one of the signed-in user's launches before it goes live, refunding a paid Fast Track. */
 export async function cancelLaunch(productId: string): Promise<FormState> {
   const user = await getCurrentUser();
   if (!user) return signedOut;
   if (typeof productId !== "string") return { status: "error", message: "That launch couldn't be found." };
 
   const product = await db.product.findFirst({
-    where: { id: productId, makerId: user.id, launchDate: { gt: startOfUtcDay(new Date()) } },
+    // Not live yet: a later day, or a Fast Track slot that hasn't started.
+    where: {
+      id: productId,
+      makerId: user.id,
+      OR: [{ launchDate: { gt: startOfUtcDay(new Date()) } }, { launchAt: { gt: new Date() } }],
+    },
     select: {
       id: true,
       logoUrl: true,

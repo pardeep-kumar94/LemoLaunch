@@ -7,8 +7,9 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { getCurrentUser } from "@/lib/auth";
 import { db } from "@/lib/db";
-import { formatPrice, paymentMode } from "@/lib/payments";
-import { completeSimulatedPayment } from "./actions";
+import { paymentMode } from "@/lib/payments";
+import { FAST_TRACK, formatMoney } from "@/lib/pricing";
+import { completeSimulatedBoostPayment, completeSimulatedPayment } from "./actions";
 
 export const metadata: Metadata = pageMetadata({
   title: "Simulated checkout",
@@ -30,17 +31,33 @@ export default function SimulatedCheckoutPage({ searchParams }: PageProps<"/dev/
 async function Checkout({ searchParams }: { searchParams: PageProps<"/dev/checkout">["searchParams"] }) {
   // Exists only in local development when no Dodo keys are set.
   if (paymentMode() !== "simulated") notFound();
-  const { submission: id } = await searchParams;
+  const { submission: submissionId, boost: boostId } = await searchParams;
   const user = await getCurrentUser();
   if (!user) redirect("/signin?next=/profile");
-  const submission =
-    typeof id === "string"
-      ? await db.submission.findFirst({
-          where: { id, userId: user.id, paymentStatus: "awaiting" },
-          select: { id: true, name: true },
-        })
-      : null;
-  if (!submission) redirect("/profile");
+
+  let item: { label: string; amountCents: number; pay: () => Promise<void> } | null = null;
+  if (typeof submissionId === "string") {
+    const submission = await db.submission.findFirst({
+      where: { id: submissionId, userId: user.id, paymentStatus: "awaiting" },
+      select: { id: true, name: true },
+    });
+    if (submission) {
+      item = { label: `Fast Track for ${submission.name}`, amountCents: FAST_TRACK.priceCents, pay: completeSimulatedPayment.bind(null, submission.id) };
+    }
+  } else if (typeof boostId === "string") {
+    const boost = await db.boost.findFirst({
+      where: { id: boostId, userId: user.id, paymentStatus: "awaiting" },
+      select: { id: true, days: true, placement: true, amountCents: true, product: { select: { name: true } } },
+    });
+    if (boost) {
+      item = {
+        label: `${boost.days}-day ${boost.placement} boost for ${boost.product.name}`,
+        amountCents: boost.amountCents,
+        pay: completeSimulatedBoostPayment.bind(null, boost.id),
+      };
+    }
+  }
+  if (!item) redirect("/profile");
 
   return (
     <div className="rounded-2xl border border-dashed border-input bg-card p-6 shadow-paper sm:p-8">
@@ -52,14 +69,14 @@ async function Checkout({ searchParams }: { searchParams: PageProps<"/dev/checko
       </p>
       <dl className="mt-6 grid grid-cols-[auto_1fr] gap-x-6 gap-y-2 border-y border-border py-4">
         <dt className="text-muted-foreground">Item</dt>
-        <dd className="font-medium">Launch Pass for {submission.name}</dd>
+        <dd className="font-medium">{item.label}</dd>
         <dt className="text-muted-foreground">Total</dt>
-        <dd className="num font-medium">{formatPrice()}</dd>
+        <dd className="num font-medium">{formatMoney(item.amountCents)}</dd>
       </dl>
       <div className="mt-6 flex flex-wrap gap-2.5">
-        <form action={completeSimulatedPayment.bind(null, submission.id)}>
+        <form action={item.pay}>
           <Button type="submit" size="lg">
-            Pay {formatPrice()} (simulated)
+            Pay {formatMoney(item.amountCents)} (simulated)
           </Button>
         </form>
         <Button asChild size="lg" variant="outline">

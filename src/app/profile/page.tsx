@@ -4,7 +4,7 @@ import { Suspense } from "react";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { connection } from "next/server";
-import { AtSign, Briefcase, CalendarDays, ChevronUp, Code, Globe, MessageCircle, Plus, Zap } from "lucide-react";
+import { AtSign, Briefcase, CalendarDays, ChevronUp, Code, Globe, MessageCircle, Plus, Rocket, Zap } from "lucide-react";
 import { LogoTile } from "@/components/logo-tile";
 import { PlatformBadges } from "@/components/platform-badges";
 import { ChangeEmailForm, ChangePasswordForm } from "@/components/profile/account-forms";
@@ -18,7 +18,8 @@ import { UserAvatar } from "@/components/user-avatar";
 import { getCurrentUser, hasPassword } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { formatLaunchDay, startOfUtcDay } from "@/lib/dates";
-import { formatPrice } from "@/lib/payments";
+import { formatSlotTime } from "@/lib/fast-track";
+import { FAST_TRACK, formatMoney, PLACEMENT_INFO } from "@/lib/pricing";
 import { getMyProducts, type MyProduct } from "@/lib/profile";
 import { resumeCheckout } from "@/app/actions";
 
@@ -214,7 +215,8 @@ function MyProducts({ products }: { products: MyProduct[] }) {
     <div className="grid gap-4">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <p className="max-w-[62ch] text-muted-foreground">
-          Cancel a launch any time before it goes live; a paid Launch Pass is refunded in full.
+          Cancel a launch any time before it goes live; a paid Fast Track is refunded in full. Boost a launch
+          to show it in a Promoted spot on the homepage.
         </p>
         <Button asChild>
           <Link href="/submit">
@@ -227,7 +229,7 @@ function MyProducts({ products }: { products: MyProduct[] }) {
         {products.map((p) => {
           const status = statusStyles[p.status];
           const launchDay = p.launchDate ? formatLaunchDay(p.launchDate) : null;
-          const payment = p.plan === "pass" ? paymentLabels[p.paymentStatus] : undefined;
+          const payment = p.plan !== "free" ? paymentLabels[p.paymentStatus] : undefined;
           return (
             <li key={p.key} className="flex flex-col gap-4 px-4 py-4 sm:px-5 md:flex-row md:items-center">
               <div className="flex min-w-0 flex-1 items-start gap-4 md:items-center">
@@ -247,12 +249,20 @@ function MyProducts({ products }: { products: MyProduct[] }) {
                       {status.dot && <span aria-hidden className={`size-1.5 rounded-full ${status.dot}`} />}
                       {status.label}
                     </Badge>
-                    {p.plan === "pass" && (
+                    {p.plan !== "free" && (
                       <Badge variant="outline">
                         <Zap aria-hidden />
-                        Launch Pass{payment ? ` · ${payment}` : ""}
+                        {p.plan === "fast" ? "Fast Track" : "Launch Pass"}
+                        {payment ? ` · ${payment}` : ""}
                       </Badge>
                     )}
+                    {p.boosts.map((b) => (
+                      <Badge key={`${b.placement}-${b.startDate.toISOString()}`} variant="lemon">
+                        <Rocket aria-hidden />
+                        Boosted · {PLACEMENT_INFO[b.placement].label} · until {formatLaunchDay(b.endDate).weekday.slice(0, 3)}{" "}
+                        {b.endDate.getUTCDate()}
+                      </Badge>
+                    ))}
                   </div>
                   <p className="mt-0.5 text-muted-foreground md:truncate">{p.tagline}</p>
                   <p className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-[12.5px] text-muted-foreground">
@@ -265,10 +275,10 @@ function MyProducts({ products }: { products: MyProduct[] }) {
                             <span className="font-medium text-foreground">
                               {launchDay.weekday}, {launchDay.day}
                             </span>
-                            {p.status === "scheduled" && " at 00:00 UTC"}
+                            {p.status === "scheduled" && ` at ${p.launchAt ? formatSlotTime(p.launchAt) : "00:00"} UTC`}
                           </>
                         ) : (
-                          "Launch day set when you pay"
+                          "Launch time set when you pay"
                         )}
                       </span>
                     </span>
@@ -286,7 +296,8 @@ function MyProducts({ products }: { products: MyProduct[] }) {
                   </p>
                   {p.status === "awaiting_payment" && (
                     <p className="mt-2 text-sm text-muted-foreground">
-                      Saved. Complete the {formatPrice()} payment and it&apos;s scheduled for the day you picked.
+                      Saved. Complete the {formatMoney(FAST_TRACK.priceCents)} payment and it goes live in the slot you
+                      picked{p.launchAt ? ` (${formatSlotTime(p.launchAt)} UTC)` : ""}, or the next free one.
                     </p>
                   )}
                 </div>
@@ -309,6 +320,14 @@ function MyProducts({ products }: { products: MyProduct[] }) {
                 {p.kind === "product" && p.slug && (
                   <Button asChild variant="outline" size="sm">
                     <Link href={`/products/${p.slug}#badge`}>Get badge</Link>
+                  </Button>
+                )}
+                {p.kind === "product" && p.slug && (
+                  <Button asChild variant="lemon" size="sm">
+                    <Link href={`/boost/${p.slug}`}>
+                      <Rocket data-icon="inline-start" />
+                      Boost
+                    </Link>
                   </Button>
                 )}
                 {p.status === "awaiting_payment" && (

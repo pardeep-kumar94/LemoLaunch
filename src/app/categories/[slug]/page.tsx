@@ -7,6 +7,7 @@ import { LaunchCard, LaunchList } from "@/components/launch-card";
 import { PageBand, Segmented, SubmitCallout } from "@/components/sections";
 import { db } from "@/lib/db";
 import { startOfUtcDay } from "@/lib/dates";
+import { getActiveBoosts } from "@/lib/boost";
 import { getTopicDirectory, searchLaunches } from "@/lib/launches";
 import { readVisitorId } from "@/lib/visitor";
 
@@ -47,9 +48,10 @@ async function Category({ params }: { params: PageProps<"/categories/[slug]">["p
   const visitorId = await readVisitorId();
   await connection();
   const today = startOfUtcDay(new Date());
-  const [launches, directory] = await Promise.all([
+  const [launches, directory, boosts] = await Promise.all([
     searchLaunches({ topicSlug: slug }, today, visitorId),
     getTopicDirectory(today),
+    getActiveBoosts(today, visitorId),
   ]);
 
   return (
@@ -111,6 +113,12 @@ async function Category({ params }: { params: PageProps<"/categories/[slug]">["p
             {launches.map((launch, index) => (
               <LaunchCard key={launch.id} launch={launch} rank={index + 1} />
             ))}
+            {/* Bottom-placement boosts in this category close the list. */}
+            {boosts.bottom
+              .filter((l) => l.topics.some((t) => t.slug === slug))
+              .map((launch) => (
+                <LaunchCard key={`promoted-${launch.id}`} launch={launch} promoted />
+              ))}
           </LaunchList>
         ) : (
           <div className="max-w-4xl rounded-2xl border border-dashed border-input px-6 py-12 text-center">

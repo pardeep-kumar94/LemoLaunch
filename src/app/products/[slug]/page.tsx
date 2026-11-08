@@ -28,7 +28,9 @@ import { db } from "@/lib/db";
 import { formatLaunchDay, isSameUtcDay, startOfUtcDay, toDayParam } from "@/lib/dates";
 import { getCurrentUser } from "@/lib/auth";
 import { siteOrigin } from "@/lib/origin";
-import { getComments, getEditionNumber, getProductBySlug, getRelatedLaunches, isUpcoming } from "@/lib/launches";
+import { getComments, getEditionNumber, getProductBySlug, getRelatedLaunches, isProductUpcoming } from "@/lib/launches";
+import { getActiveBoosts } from "@/lib/boost";
+import { formatSlotTime } from "@/lib/fast-track";
 import {
   formatRating,
   getCategoryWeekRank,
@@ -96,14 +98,14 @@ async function Product({ params }: { params: PageProps<"/products/[slug]">["para
   const product = await getProductBySlug(slug, visitorId);
   if (!product) notFound();
 
-  const upcoming = isUpcoming(product.launchDate, today);
+  const upcoming = isProductUpcoming(product);
   const launchedToday = isSameUtcDay(product.launchDate, today);
   const dayHref = launchedToday ? "/" : `/archive?day=${toDayParam(product.launchDate)}`;
   const { weekday, day } = formatLaunchDay(product.launchDate);
   const launchYear = product.launchDate.getUTCFullYear();
   const category = primaryTopic(product);
 
-  const [alternatives, comments, user, reviews, dayRank, categoryRank, origin, edition, starCounts] = await Promise.all([
+  const [alternatives, comments, user, reviews, dayRank, categoryRank, origin, edition, starCounts, boosts] = await Promise.all([
     category ? getRelatedLaunches(product.id, category.slug, today, 6) : [],
     getComments(product.id),
     getCurrentUser(),
@@ -115,7 +117,10 @@ async function Product({ params }: { params: PageProps<"/products/[slug]">["para
     upcoming
       ? []
       : db.review.groupBy({ by: ["rating"], where: { productId: product.id }, _count: { _all: true } }),
+    getActiveBoosts(today, null),
   ]);
+  // Top boosts also show on product pages (never on their own page).
+  const promoted = boosts.top.filter((l) => l.id !== product.id);
   const competitor = alternatives[0];
   const [ratings, following] = await Promise.all([
     getRatings([product.id, ...(competitor ? [competitor.id] : [])]),
@@ -337,9 +342,11 @@ async function Product({ params }: { params: PageProps<"/products/[slug]">["para
                   <div className="flex items-center gap-4 rounded-2xl bg-card p-4 shadow-paper ring-1 ring-border">
                     <CalendarTile date={product.launchDate} />
                     <div>
-                      <p className="font-display text-lg leading-tight font-bold">Goes live {daysUntil(product.launchDate, today)}</p>
+                      <p className="font-display text-lg leading-tight font-bold">
+                        Goes live {product.launchDate.getTime() === today.getTime() ? "today" : daysUntil(product.launchDate, today)}
+                      </p>
                       <p className="num mt-1 text-[13px] text-muted-foreground">
-                        00:00 UTC, {weekday.slice(0, 3)} {day}
+                        {product.launchAt ? formatSlotTime(product.launchAt) : "00:00"} UTC, {weekday.slice(0, 3)} {day}
                       </p>
                     </div>
                   </div>
@@ -712,6 +719,34 @@ async function Product({ params }: { params: PageProps<"/products/[slug]">["para
               </div>
             )}
           </section>
+
+          {promoted.length > 0 && (
+            <section aria-labelledby="promoted-heading" className="rounded-2xl bg-card p-5 shadow-paper ring-1 ring-border">
+              <div className="mb-1 flex items-center justify-between">
+                <h2 id="promoted-heading" className="font-display text-[17px] font-bold">
+                  Promoted
+                </h2>
+                <Link href="/pricing" className="text-xs text-muted-foreground hover:text-foreground">
+                  What&apos;s this?
+                </Link>
+              </div>
+              <ul>
+                {promoted.map((l) => (
+                  <li key={l.id}>
+                    <Link href={`/products/${l.slug}`} className="group flex items-center gap-3 py-2">
+                      <LogoTile name={l.name} accent={l.accent} src={l.logoUrl} size="sm" />
+                      <span className="min-w-0">
+                        <span className="block truncate font-semibold group-hover:underline group-hover:decoration-lemon-deep group-hover:decoration-2">
+                          {l.name}
+                        </span>
+                        <span className="block truncate text-[13px] text-muted-foreground">{l.tagline}</span>
+                      </span>
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            </section>
+          )}
 
           <ReportForm productId={product.id} />
         </aside>

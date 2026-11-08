@@ -13,12 +13,15 @@ import { addUtcDays, formatLaunchDay, startOfUtcDay, toDayParam } from "@/lib/da
 import {
   countLaunchesInRange,
   countPlatformsInRange,
+  countSeatsTaken,
   getEditionNumber,
+  getPinnedLaunch,
   getPreviousLaunchDays,
   getRankedLaunches,
   getTopicDirectory,
   getTopicsInRange,
 } from "@/lib/launches";
+import { getActiveBoosts } from "@/lib/boost";
 import { isPlatform, platformLabels } from "@/lib/platforms";
 import { DAILY_LAUNCH_LIMIT, launchQueue } from "@/lib/publish";
 import { absoluteUrl, DEFAULT_DESCRIPTION, jsonLd, SITE_NAME } from "@/lib/seo";
@@ -70,11 +73,13 @@ async function HomeContent({ searchParams }: { searchParams: PageProps<"/">["sea
   const visitorId = await readVisitorId();
   // "Today" depends on when the request arrives.
   await connection();
-  const today = startOfUtcDay(new Date());
+  const now = new Date();
+  const today = startOfUtcDay(now);
+  const pinned = await getPinnedLaunch(now, visitorId);
 
-  const [ranked, topics, todayCount, platformCounts, weekLeaders, directory, edition, queue, pastDays] =
+  const [ranked, topics, todayCount, platformCounts, weekLeaders, directory, edition, queue, pastDays, seatsTaken, boosts] =
     await Promise.all([
-      getRankedLaunches({ from: today, to: today, visitorId, topicSlug: topic, platform }),
+      getRankedLaunches({ from: today, to: today, visitorId, topicSlug: topic, platform, excludeIds: pinned ? [pinned.launch.id] : [] }),
       getTopicsInRange(today, today),
       countLaunchesInRange(today, today),
       countPlatformsInRange(today, today),
@@ -83,6 +88,8 @@ async function HomeContent({ searchParams }: { searchParams: PageProps<"/">["sea
       getEditionNumber(today),
       launchQueue(today),
       getPreviousLaunchDays(today, 3),
+      countSeatsTaken(today),
+      getActiveBoosts(today, visitorId),
     ]);
   const [yesterday, ...olderDays] = pastDays;
   const [yesterdayTop, ...olderTops] = await Promise.all([
@@ -102,7 +109,9 @@ async function HomeContent({ searchParams }: { searchParams: PageProps<"/">["sea
   };
   const topicHref = (slug?: string) => homeHref({ topic: slug, platform });
   const visible = filtered || showAll ? ranked : ranked.slice(0, TODAY_PREVIEW);
-  const seatsTaken = Math.min(todayCount, DAILY_LAUNCH_LIMIT);
+  // Paid placements only show on the unfiltered list; they never change anyone's rank.
+  const paid = !filtered;
+  const showPinned = paid && pinned !== null;
   const { weekday, day } = formatLaunchDay(today);
   const nextSeat = formatLaunchDay(queue.day);
   const archiveHref = (d: Date) => `/archive?day=${toDayParam(d)}`;
@@ -162,12 +171,12 @@ async function HomeContent({ searchParams }: { searchParams: PageProps<"/">["sea
             <div className="flex items-baseline justify-between gap-3">
               <h2 className="font-semibold">Today&apos;s {DAILY_LAUNCH_LIMIT} seats</h2>
               <p className="num text-[13px] text-muted-foreground">
-                <span className="font-semibold text-foreground">{seatsTaken}</span> / {DAILY_LAUNCH_LIMIT} taken
+                <span className="font-semibold text-foreground">{Math.min(seatsTaken, DAILY_LAUNCH_LIMIT)}</span> / {DAILY_LAUNCH_LIMIT} taken
               </p>
             </div>
             <SeatGrid
               total={DAILY_LAUNCH_LIMIT}
-              filled={seatsTaken}
+              filled={Math.min(seatsTaken, DAILY_LAUNCH_LIMIT)}
               animate
               className="mt-4 grid-cols-20 gap-[3px] sm:gap-1 lg:grid-cols-10"
             />
@@ -220,11 +229,19 @@ async function HomeContent({ searchParams }: { searchParams: PageProps<"/">["sea
               </div>
             </div>
 
-            {visible.length > 0 ? (
+            {visible.length > 0 || showPinned ? (
               <LaunchList className="mt-4">
-                {visible.map((launch, index) => (
-                  <LaunchCard key={launch.id} launch={launch} rank={index + 1} topicHref={(slug) => topicHref(slug)} />
-                ))}
+                {showPinned && pinned && (
+                  <LaunchCard launch={pinned.launch} pinned={{ remaining: pinned.remaining }} topicHref={(slug) => topicHref(slug)} />
+                )}
+                {paid && boosts.top.map((launch) => <LaunchCard key={`top-${launch.id}`} launch={launch} promoted />)}
+                {visible.flatMap((launch, index) => [
+                  <LaunchCard key={launch.id} launch={launch} rank={index + 1} topicHref={(slug) => topicHref(slug)} />,
+                  ...(paid && index === Math.min(4, visible.length - 1)
+                    ? boosts.middle.map((boosted) => <LaunchCard key={`middle-${boosted.id}`} launch={boosted} promoted />)
+                    : []),
+                ])}
+                {paid && boosts.bottom.map((launch) => <LaunchCard key={`bottom-${launch.id}`} launch={launch} promoted />)}
                 {visible.length < ranked.length && (
                   <li className="flex justify-center px-4 py-3.5">
                     <Button asChild variant="outline">

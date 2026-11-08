@@ -33,6 +33,11 @@ model Product {
   featured    Boolean  @default(false)
   /// Launch day in UTC. Products dated after today are "upcoming".
   launchDate  DateTime @db.Date
+  /// Fast Track: the exact moment it goes live (a 2-hour slot start). Null means 00:00 UTC on
+  /// launchDate. Unique, so one Fast Track launch per slot.
+  launchAt    DateTime? @unique
+  /// Fast Track: pinned to the top of the day's list until this moment.
+  pinnedUntil DateTime?
   createdAt   DateTime @default(now())
   /// The account that owns this launch, once a submission is approved.
   makerId     String?
@@ -49,6 +54,7 @@ model Product {
 
   makerUser  User?       @relation(fields: [makerId], references: [id], onDelete: SetNull)
   submission Submission?
+  boosts     Boost[]
   topics    Topic[]
   votes    Vote[]
   comments Comment[]
@@ -101,11 +107,13 @@ model Submission {
   pricingModel  String?
   freeTrialDays Int?
   features      String[] @default([])
-  /// Launch Pass makers pick their day; free launches are scheduled by the reviewer.
+  /// The launch day: the queue's next open day for free launches, the slot's day for Fast Track.
   launchDate  DateTime? @db.Date
-  /// "free" or "pass".
+  /// Fast Track: the 2-hour slot the maker picked (held for 30 minutes while they pay).
+  launchAt    DateTime?
+  /// "free" or "fast" (Fast Track). Older rows may say "pass" (the retired Launch Pass).
   plan        String   @default("free")
-  /// "awaiting_payment" until a Launch Pass is paid, "pending" briefly, then "approved" once published.
+  /// "awaiting_payment" until Fast Track is paid, "pending" briefly, then "approved" once published.
   status      String   @default("pending")
   /// "none", "awaiting", "paid", "refunded" or "refund_failed".
   paymentStatus     String    @default("none")
@@ -153,6 +161,7 @@ model User {
   createdAt    DateTime @default(now())
 
   sessions    Session[]
+  boosts      Boost[]
   comments    Comment[]
   submissions Submission[]
   products    Product[]
@@ -231,4 +240,32 @@ model Comment {
   user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([productId, createdAt])
+}
+
+/// A paid Boost: a product shown in a Promoted spot on the homepage for 1 to 7 days.
+/// Promoted spots never change the upvote ranking.
+model Boost {
+  id        String   @id @default(cuid())
+  productId String
+  userId    String
+  /// "top", "middle" or "bottom" of today's list.
+  placement String
+  /// First and last UTC day the boost runs (inclusive).
+  startDate DateTime @db.Date
+  endDate   DateTime @db.Date
+  days      Int
+  amountCents Int
+  currency  String   @default("USD")
+  /// "awaiting" until paid (the spot is held for 30 minutes), then "paid", "refunded" or "refund_failed".
+  paymentStatus     String    @default("awaiting")
+  checkoutSessionId String?
+  paymentId         String?
+  paidAt            DateTime?
+  createdAt DateTime @default(now())
+
+  product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([startDate, endDate])
+  @@index([productId])
 }

@@ -1,37 +1,22 @@
 import { randomUUID } from "node:crypto";
 import DodoPayments from "dodopayments";
 import { db } from "@/lib/db";
-import { FEATURED_DAYS, publishSubmission } from "@/lib/publish";
+import { CURRENCY, FAST_TRACK } from "@/lib/pricing";
+import { publishSubmission } from "@/lib/publish";
 
-// Launch Pass payments through Dodo Payments.
+// Fast Track and Boost payments through Dodo Payments.
 //
-// Set DODO_PAYMENTS_API_KEY, DODO_LAUNCH_PASS_PRODUCT_ID (a one-time product priced at the
-// Launch Pass price), DODO_PAYMENTS_WEBHOOK_KEY and DODO_PAYMENTS_ENVIRONMENT
-// ("test_mode" or "live_mode"). Without them, local development uses a simulated checkout
-// and production hides the Launch Pass.
-
-export const LAUNCH_PASS = {
-  /** Shown on the site. Keep it equal to the Dodo product's price. */
-  priceCents: Number(process.env.LAUNCH_PASS_PRICE_CENTS ?? 1900),
-  currency: (process.env.LAUNCH_PASS_CURRENCY ?? "USD").toUpperCase(),
-  /** Days in the "Featured launches" panel, counting launch day. */
-  featuredDays: FEATURED_DAYS,
-};
+// Set DODO_PAYMENTS_API_KEY, DODO_PRODUCT_ID (a one-time product with "pay what you want" turned
+// on; each checkout sets its own amount), DODO_PAYMENTS_WEBHOOK_KEY and DODO_PAYMENTS_ENVIRONMENT
+// ("test_mode" or "live_mode"). Without them, local development uses a simulated checkout and
+// production shows paid options as unavailable.
 
 export type PaymentMode = "dodo" | "simulated" | "off";
 
 export function paymentMode(): PaymentMode {
-  if (process.env.DODO_PAYMENTS_API_KEY && process.env.DODO_LAUNCH_PASS_PRODUCT_ID) return "dodo";
+  if (process.env.DODO_PAYMENTS_API_KEY && process.env.DODO_PRODUCT_ID) return "dodo";
   if (process.env.NODE_ENV === "development") return "simulated";
   return "off";
-}
-
-export function formatPrice(cents = LAUNCH_PASS.priceCents, currency = LAUNCH_PASS.currency) {
-  return new Intl.NumberFormat("en-US", {
-    style: "currency",
-    currency,
-    minimumFractionDigits: cents % 100 === 0 ? 0 : 2,
-  }).format(cents / 100);
 }
 
 let client: DodoPayments | null = null;
@@ -44,81 +29,142 @@ function dodo(): DodoPayments {
   return client;
 }
 
-/** Starts a Launch Pass checkout for a submission and returns the URL to send the maker to. */
-export async function createLaunchPassCheckout({
+type Customer = { email: string; name: string };
+
+/** Opens a Dodo checkout for `amountCents` and returns its URL and session id. */
+async function openCheckout({
+  amountCents,
+  customer,
+  returnUrl,
+  metadata,
+}: {
+  amountCents: number;
+  customer: Customer;
+  returnUrl: string;
+  metadata: Record<string, string>;
+}) {
+  const session = await dodo().checkoutSessions.create({
+    product_cart: [{ product_id: process.env.DODO_PRODUCT_ID!, quantity: 1, amount: amountCents }],
+    customer: { email: customer.email, name: customer.name },
+    return_url: returnUrl,
+    metadata,
+  });
+  if (!session.checkout_url) throw new Error("Dodo didn't return a checkout link.");
+  return { url: session.checkout_url, sessionId: session.session_id };
+}
+
+/** Starts the Fast Track checkout for a submission and returns the URL to send the maker to. */
+export async function createFastTrackCheckout({
   submissionId,
   customer,
   origin,
 }: {
   submissionId: string;
-  customer: { email: string; name: string };
+  customer: Customer;
   origin: string;
 }): Promise<string> {
   const mode = paymentMode();
   if (mode === "off") throw new Error("Payments aren't configured.");
-
   if (mode === "simulated") {
-    await db.submission.update({
-      where: { id: submissionId },
-      data: { checkoutSessionId: `sim_session_${randomUUID()}` },
-    });
+    await db.submission.update({ where: { id: submissionId }, data: { checkoutSessionId: `sim_session_${randomUUID()}` } });
     return `/dev/checkout?submission=${submissionId}`;
   }
-
-  const session = await dodo().checkoutSessions.create({
-    product_cart: [{ product_id: process.env.DODO_LAUNCH_PASS_PRODUCT_ID!, quantity: 1 }],
-    customer: { email: customer.email, name: customer.name },
-    return_url: `${origin}/submit/payment?submission=${submissionId}`,
-    metadata: { submission_id: submissionId },
+  const { url, sessionId } = await openCheckout({
+    amountCents: FAST_TRACK.priceCents,
+    customer,
+    returnUrl: `${origin}/submit/payment?submission=${submissionId}`,
+    metadata: { kind: "fast_track", submission_id: submissionId },
   });
-  if (!session.checkout_url) throw new Error("Dodo didn't return a checkout link.");
-  await db.submission.update({
-    where: { id: submissionId },
-    data: { checkoutSessionId: session.session_id },
-  });
-  return session.checkout_url;
+  await db.submission.update({ where: { id: submissionId }, data: { checkoutSessionId: sessionId } });
+  return url;
 }
 
-/** Records a successful payment and publishes the launch. Safe to call more than once. */
-export async function markSubmissionPaid(
-  submissionId: string,
-  payment: { paymentId: string; amountCents?: number; currency?: string },
-) {
+/** Starts the checkout for a boost and returns the URL to send the maker to. */
+export async function createBoostCheckout({
+  boostId,
+  amountCents,
+  customer,
+  origin,
+}: {
+  boostId: string;
+  amountCents: number;
+  customer: Customer;
+  origin: string;
+}): Promise<string> {
+  const mode = paymentMode();
+  if (mode === "off") throw new Error("Payments aren't configured.");
+  if (mode === "simulated") {
+    await db.boost.update({ where: { id: boostId }, data: { checkoutSessionId: `sim_session_${randomUUID()}` } });
+    return `/dev/checkout?boost=${boostId}`;
+  }
+  const { url, sessionId } = await openCheckout({
+    amountCents,
+    customer,
+    returnUrl: `${origin}/boost/payment?boost=${boostId}`,
+    metadata: { kind: "boost", boost_id: boostId },
+  });
+  await db.boost.update({ where: { id: boostId }, data: { checkoutSessionId: sessionId } });
+  return url;
+}
+
+type Payment = { paymentId: string; amountCents?: number; currency?: string };
+
+/** Records a successful Fast Track payment and publishes the launch. Safe to call more than once. */
+export async function markSubmissionPaid(submissionId: string, payment: Payment) {
   await db.submission.updateMany({
     where: { id: submissionId, paymentStatus: "awaiting" },
     data: {
       status: "pending",
       paymentStatus: "paid",
       paymentId: payment.paymentId,
-      amountCents: payment.amountCents ?? LAUNCH_PASS.priceCents,
-      currency: payment.currency ?? LAUNCH_PASS.currency,
+      amountCents: payment.amountCents ?? FAST_TRACK.priceCents,
+      currency: payment.currency ?? CURRENCY,
       paidAt: new Date(),
     },
   });
   await publishSubmission(submissionId);
 }
 
-/** Asks Dodo whether a submission's checkout was paid, for when the webhook hasn't arrived yet. */
+/** Records a successful boost payment, which switches the boost on. Safe to call more than once. */
+export async function markBoostPaid(boostId: string, payment: Payment) {
+  await db.boost.updateMany({
+    where: { id: boostId, paymentStatus: "awaiting" },
+    data: {
+      paymentStatus: "paid",
+      paymentId: payment.paymentId,
+      ...(payment.currency ? { currency: payment.currency } : {}),
+      paidAt: new Date(),
+    },
+  });
+}
+
+/** Asks Dodo whether a checkout was paid, for when the webhook hasn't arrived yet. */
+async function paidCheckout(checkoutSessionId: string | null): Promise<Payment | null> {
+  if (!checkoutSessionId || paymentMode() !== "dodo" || checkoutSessionId.startsWith("sim_")) return null;
+  const session = await dodo().checkoutSessions.retrieve(checkoutSessionId);
+  if (session.payment_status !== "succeeded" || !session.payment_id) return null;
+  const payment = await dodo().payments.retrieve(session.payment_id);
+  return { paymentId: payment.payment_id, amountCents: payment.total_amount, currency: payment.currency };
+}
+
 export async function syncCheckout(submissionId: string) {
   const submission = await db.submission.findUnique({
     where: { id: submissionId },
     select: { paymentStatus: true, checkoutSessionId: true },
   });
-  if (!submission?.checkoutSessionId || submission.paymentStatus !== "awaiting") return;
-  if (paymentMode() !== "dodo" || submission.checkoutSessionId.startsWith("sim_")) return;
-
-  const session = await dodo().checkoutSessions.retrieve(submission.checkoutSessionId);
-  if (session.payment_status === "succeeded" && session.payment_id) {
-    const payment = await dodo().payments.retrieve(session.payment_id);
-    await markSubmissionPaid(submissionId, {
-      paymentId: payment.payment_id,
-      amountCents: payment.total_amount,
-      currency: payment.currency,
-    });
-  }
+  if (submission?.paymentStatus !== "awaiting") return;
+  const paid = await paidCheckout(submission.checkoutSessionId);
+  if (paid) await markSubmissionPaid(submissionId, paid);
 }
 
-/** Refunds a paid submission in full. Returns false if the refund couldn't be started. */
+export async function syncBoostCheckout(boostId: string) {
+  const boost = await db.boost.findUnique({ where: { id: boostId }, select: { paymentStatus: true, checkoutSessionId: true } });
+  if (boost?.paymentStatus !== "awaiting") return;
+  const paid = await paidCheckout(boost.checkoutSessionId);
+  if (paid) await markBoostPaid(boostId, paid);
+}
+
+/** Refunds a paid Fast Track submission in full. Returns false if the refund couldn't be started. */
 export async function refundSubmission(submissionId: string, reason: string): Promise<boolean> {
   const submission = await db.submission.findUnique({
     where: { id: submissionId },
@@ -145,7 +191,9 @@ export function verifyWebhook(body: string, headers: Headers) {
 }
 
 /** A simulated payment for local development only. */
-export async function simulatePayment(submissionId: string) {
+export async function simulatePayment(target: { submissionId: string } | { boostId: string }) {
   if (paymentMode() !== "simulated") throw new Error("Simulated payments are only for local development.");
-  await markSubmissionPaid(submissionId, { paymentId: `sim_pay_${randomUUID()}` });
+  const payment = { paymentId: `sim_pay_${randomUUID()}` };
+  if ("submissionId" in target) await markSubmissionPaid(target.submissionId, payment);
+  else await markBoostPaid(target.boostId, payment);
 }
