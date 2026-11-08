@@ -1,7 +1,7 @@
 /*
   LemoLaunch badge. Add to your site where the badge should appear:
   <script src="https://<launchpad-site>/embed.js" data-product="your-product" data-theme="light" async></script>
-  data-theme is light, yellow or dark.
+  data-theme is light, yellow (lemon) or dark.
 */
 (function () {
   var script = document.currentScript;

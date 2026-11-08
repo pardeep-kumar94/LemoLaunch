@@ -2,7 +2,7 @@
 
 A daily launch directory. Visitors browse today's launches, step back through the week, filter by category, search, upvote what they'd use, and see what's coming next. Makers submit launches for review.
 
-Built with Next.js 16 (App Router, Cache Components), PostgreSQL and Prisma, styled with Tailwind CSS. The "Lemonade" palette (lemon yellow, coral, cocoa) lives as CSS variables in `src/app/globals.css`; the typeface is Lexend.
+Built with Next.js 16 (App Router, Cache Components), PostgreSQL and Prisma, styled with Tailwind CSS. UI components come from shadcn/ui. The "Daily Edition" palette (warm ink on paper, with lemon and leaf accents) lives as shadcn theme variables in `src/app/globals.css`; type is Bricolage Grotesque, Geist and Geist Mono.
 
 ## Getting started
 

@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { track } from "@/lib/analytics";
 
-const themeLabels: Record<BadgeTheme, string> = { light: "Light", yellow: "Yellow", dark: "Dark" };
+const themeLabels: Record<BadgeTheme, string> = { light: "Light", yellow: "Lemon", dark: "Dark" };
 
 const formats = [
   { key: "html", label: "HTML", hint: "Works on any website. Paste it where the badge should appear." },
@@ -45,7 +45,7 @@ export function BadgeEmbed({ origin, slug }: { origin: string; slug: string }) {
               className={cn(
                 "flex cursor-pointer flex-col items-center gap-2 rounded-xl p-3 ring-1 transition-shadow has-focus-visible:outline-2 has-focus-visible:outline-offset-2 has-focus-visible:outline-ring",
                 theme === t ? "ring-2 ring-primary" : "ring-border hover:ring-input",
-                t === "dark" ? "bg-[#1c120c]" : "bg-white",
+                t === "dark" ? "bg-[#17130e]" : "bg-white",
               )}
             >
               <input
@@ -64,7 +64,7 @@ export function BadgeEmbed({ origin, slug }: { origin: string; slug: string }) {
                 height={BADGE_HEIGHT}
                 className="h-auto w-full max-w-[250px]"
               />
-              <span className={cn("text-sm font-medium", t === "dark" ? "text-[#fbf1e8]" : "text-[#3b1d0e]")}>
+              <span className={cn("text-sm font-medium", t === "dark" ? "text-[#f4efe6]" : "text-[#2c2318]")}>
                 {themeLabels[t]}
               </span>
             </label>
