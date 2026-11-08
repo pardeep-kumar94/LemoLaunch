@@ -10,7 +10,7 @@ Requires Node 20+ and a running PostgreSQL server.
 
 ```bash
 npm install
-cp .env.example .env          # then set DATABASE_URL
+touch .env                    # then add the variables below (at least DATABASE_URL)
 createdb launchpad            # or create the database however you prefer
 npm run db:migrate            # apply migrations
 npm run db:seed               # load sample launches
@@ -18,6 +18,20 @@ npm run dev
 ```
 
 Open http://localhost:3000.
+
+### Environment variables
+
+Put these in `.env` locally and in the Vercel project settings in production. Only `DATABASE_URL` is required for local development.
+
+| Variable | What it is |
+|---|---|
+| `DATABASE_URL` | Postgres connection string. In production, Neon's pooled string. |
+| `DATABASE_URL_UNPOOLED` | Production only: Neon's direct string, used by `vercel-build` to run migrations. |
+| `SITE_URL` | Public address, e.g. `https://lemolaunch.com`. Used in payment return links and badge embed codes. Empty locally. |
+| `DODO_PAYMENTS_API_KEY`, `DODO_PAYMENTS_WEBHOOK_KEY`, `DODO_LAUNCH_PASS_PRODUCT_ID` | Dodo Payments. Leave empty locally to use the simulated checkout. |
+| `DODO_PAYMENTS_ENVIRONMENT` | `test_mode` or `live_mode`. |
+| `LAUNCH_PASS_PRICE_CENTS`, `LAUNCH_PASS_CURRENCY` | Price shown on the site (default `1900`, `USD`). Keep equal to the Dodo product. |
+| `R2_ACCOUNT_ID`, `R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY`, `R2_BUCKET`, `R2_PUBLIC_URL` | Cloudflare R2 for uploads. Leave empty to store uploads in `./uploads`. |
 
 After changing `schema.prisma` and migrating, restart `npm run dev` so it picks up the regenerated Prisma client.
 
@@ -45,10 +59,10 @@ The seed dates launches relative to the day you run it (yesterday, today, tomorr
 - **Platforms:** every product runs on any of `web`, `ios` and `android` (`Product.platforms`), with a link for each (`websiteUrl`, `appStoreUrl`, `playStoreUrl`). Submissions must include the matching link, and App Store and Google Play links are checked against their real hosts. The homepage and archive filter by `?platform=`.
 - **Profiles:** `User` has an optional photo, headline and website. Products have an optional `makerId`; once a submission is approved into a product, setting it makes the launch appear under that maker's My products with its upvotes and comments. Changing your password signs out your other sessions.
 - **Submitting a launch and commenting require an account.** Upvotes are still anonymous, one per browser via the `lp_visitor` cookie.
-- **Uploads** (logos, screenshots, videos, profile photos) go straight from the browser to storage with short-lived signed links (`src/app/upload-actions.ts`, `src/lib/upload-client.ts`), so forms only carry file URLs. The server checks type and size before signing and re-checks the real file type before saving a URL. With the `R2_*` variables from `.env.example` set, files go to a Cloudflare R2 bucket (allow `PUT` from your site in the bucket's CORS policy); without them, they go to `./uploads` (gitignored) through `src/app/api/uploads/route.ts` and are served by `src/app/uploads/[...path]/route.ts`. Move existing local files to R2 with `npx tsx --tsconfig tsconfig.json scripts/migrate-uploads-to-r2.ts` (add `--dry-run` first).
+- **Uploads** (logos, screenshots, videos, profile photos) go straight from the browser to storage with short-lived signed links (`src/app/upload-actions.ts`, `src/lib/upload-client.ts`), so forms only carry file URLs. The server checks type and size before signing and re-checks the real file type before saving a URL. With the `R2_*` variables set, files go to a Cloudflare R2 bucket (allow `PUT` from your site in the bucket's CORS policy); without them, they go to `./uploads` (gitignored) through `src/app/api/uploads/route.ts` and are served by `src/app/uploads/[...path]/route.ts`. Move existing local files to R2 with `npx tsx --tsconfig tsconfig.json scripts/migrate-uploads-to-r2.ts` (add `--dry-run` first).
 - **Verified** and **featured** are flags on `Product`, set by the seed for now; there's no verification or promotion flow yet.
 - **Launches publish themselves** (`src/lib/publish.ts`); there's no admin review. A free launch is scheduled on the next day with fewer than 8 free launches. A Launch Pass is scheduled on the maker's chosen day as soon as payment succeeds, and is featured for 7 days. Makers can cancel any launch before it goes live, from their profile; a paid one is refunded automatically.
-- **Payments** use Dodo Payments (`src/lib/payments.ts`). Set the `DODO_*` variables from `.env.example` and point Dodo's webhook at `/api/webhooks/dodo`. Without keys, local development uses a simulated checkout and production hides the Launch Pass.
+- **Payments** use Dodo Payments (`src/lib/payments.ts`). Set the `DODO_*` variables and point Dodo's webhook at `/api/webhooks/dodo`. Without keys, local development uses a simulated checkout and production hides the Launch Pass.
 - **Badges:** makers get a "Launched on LemoLaunch" badge for their own site from the panel on their product page (only they see it). `/badge/<slug>.svg?theme=light|yellow|dark` draws it with the live upvote count (or the launch day before launch), and `public/embed.js` lets them add it with one script tag. Embed codes use `SITE_URL`, so set it in production.
 - **Brand assets:** the header and footer logos and the badge logos are in `public/brand`; the favicon and app icons are `src/app/favicon.ico`, `icon.png` and `apple-icon.png`.
 - Digest signups are stored but no emails are sent.
