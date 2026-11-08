@@ -2,7 +2,10 @@
 
 import { useState } from "react";
 import { BADGE_HEIGHT, BADGE_THEMES, BADGE_WIDTH, badgeSnippets, type BadgeTheme } from "@/lib/badge-snippets";
-import { CheckIcon } from "@/components/icons";
+import { Check, Copy } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
+import { track } from "@/lib/analytics";
 
 const themeLabels: Record<BadgeTheme, string> = { light: "Light", yellow: "Yellow", dark: "Dark" };
 
@@ -24,6 +27,7 @@ export function BadgeEmbed({ origin, slug }: { origin: string; slug: string }) {
     try {
       await navigator.clipboard.writeText(code);
       setCopied(true);
+      track("badge_embed_copied", { product_slug: slug, theme, format });
       setTimeout(() => setCopied(false), 2000);
     } catch {
       // Clipboard blocked: the code stays selectable in the box.
@@ -38,9 +42,11 @@ export function BadgeEmbed({ origin, slug }: { origin: string; slug: string }) {
           {BADGE_THEMES.map((t) => (
             <label
               key={t}
-              className={`flex cursor-pointer flex-col items-center gap-2 rounded-[16px] border-2 p-3 transition-colors has-focus-visible:outline-2 has-focus-visible:outline-offset-3 has-focus-visible:outline-ink ${
-                theme === t ? "border-ink ring-2 ring-ink ring-offset-2 ring-offset-concrete" : "border-line hover:border-mist"
-              } ${t === "dark" ? "bg-[#1c120c]" : "bg-white"}`}
+              className={cn(
+                "flex cursor-pointer flex-col items-center gap-2 rounded-xl p-3 ring-1 transition-shadow has-focus-visible:outline-2 has-focus-visible:outline-offset-2 has-focus-visible:outline-ring",
+                theme === t ? "ring-2 ring-primary" : "ring-border hover:ring-input",
+                t === "dark" ? "bg-[#1c120c]" : "bg-white",
+              )}
             >
               <input
                 type="radio"
@@ -58,7 +64,7 @@ export function BadgeEmbed({ origin, slug }: { origin: string; slug: string }) {
                 height={BADGE_HEIGHT}
                 className="h-auto w-full max-w-[250px]"
               />
-              <span className={`text-sm font-semibold ${t === "dark" ? "text-[#fbf1e8]" : "text-[#3b1d0e]"}`}>
+              <span className={cn("text-sm font-medium", t === "dark" ? "text-[#fbf1e8]" : "text-[#3b1d0e]")}>
                 {themeLabels[t]}
               </span>
             </label>
@@ -67,40 +73,32 @@ export function BadgeEmbed({ origin, slug }: { origin: string; slug: string }) {
       </fieldset>
 
       <div>
-        <div role="group" aria-label="Code format" className="flex gap-1 rounded-xl bg-signal-wash p-1 sm:inline-flex">
+        <div role="group" aria-label="Code format" className="flex h-9 gap-0.5 rounded-xl bg-muted p-[3px] sm:inline-flex">
           {formats.map((f) => (
             <button
               key={f.key}
               type="button"
               aria-pressed={format === f.key}
               onClick={() => setFormat(f.key)}
-              className={`flex-1 rounded-lg px-4 py-2 text-sm font-semibold sm:flex-none ${
-                format === f.key ? "bg-paper shadow-[0_1px_0_0_var(--line)]" : "text-mist hover:text-ink"
-              }`}
+              className={cn(
+                "flex-1 rounded-[9px] px-3.5 text-[13px] font-medium transition-colors sm:flex-none",
+                format === f.key ? "bg-card text-foreground shadow-xs" : "text-muted-foreground hover:text-foreground",
+              )}
             >
               {f.label}
             </button>
           ))}
         </div>
-        <p className="mt-3 text-sm text-mist">{hint}</p>
-        <div className="mt-3 overflow-hidden rounded-[16px] border-2 border-line bg-paper">
-          <pre className="overflow-x-auto px-4 py-3 text-[13px] leading-relaxed whitespace-pre-wrap break-all">
+        <p className="mt-3 text-sm text-muted-foreground">{hint}</p>
+        <div className="mt-3 overflow-hidden rounded-xl bg-card ring-1 ring-border">
+          <pre className="overflow-x-auto px-4 py-3 font-mono text-[12.5px] leading-relaxed whitespace-pre-wrap break-all">
             <code>{code}</code>
           </pre>
-          <div className="flex justify-end border-t-2 border-line px-3 py-2">
-            <button
-              type="button"
-              onClick={copy}
-              className="press inline-flex h-10 items-center gap-2 rounded-xl border-2 border-ink bg-signal px-4 text-sm font-bold text-on-signal shadow-[3px_3px_0_0_var(--ink)]"
-            >
-              {copied ? (
-                <>
-                  <CheckIcon /> Copied
-                </>
-              ) : (
-                "Copy code"
-              )}
-            </button>
+          <div className="flex justify-end border-t border-border px-3 py-2">
+            <Button type="button" size="sm" onClick={copy}>
+              {copied ? <Check data-icon="inline-start" /> : <Copy data-icon="inline-start" />}
+              {copied ? "Copied" : "Copy code"}
+            </Button>
           </div>
         </div>
         <p aria-live="polite" className="sr-only">

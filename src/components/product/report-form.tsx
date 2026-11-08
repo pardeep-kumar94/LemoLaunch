@@ -1,9 +1,12 @@
 "use client";
 
-import { useActionState } from "react";
+import { useActionState, useEffect } from "react";
+import { Flag } from "lucide-react";
 import { reportProduct, type ReportState } from "@/app/product-actions";
-import { FlagIcon } from "@/components/icons";
+import { Button } from "@/components/ui/button";
+import { Textarea } from "@/components/ui/textarea";
 import { REPORT_REASONS } from "@/lib/product-page";
+import { track } from "@/lib/analytics";
 
 /** "Report this product" link that opens a short inline form. */
 export function ReportForm({ productId }: { productId: string }) {
@@ -11,9 +14,13 @@ export function ReportForm({ productId }: { productId: string }) {
     status: "idle",
   });
 
+  useEffect(() => {
+    if (state.status === "sent") track("report_sent", { product_id: productId });
+  }, [state, productId]);
+
   if (state.status === "sent") {
     return (
-      <p role="status" className="text-sm text-mist">
+      <p role="status" className="text-sm text-muted-foreground">
         Thanks. We&apos;ll take a look at this product.
       </p>
     );
@@ -21,39 +28,30 @@ export function ReportForm({ productId }: { productId: string }) {
 
   return (
     <details className="group">
-      <summary className="inline-flex cursor-pointer list-none items-center gap-1.5 text-sm text-mist underline decoration-line decoration-2 underline-offset-4 hover:text-ink [&::-webkit-details-marker]:hidden">
-        <FlagIcon className="size-3.5" />
+      <summary className="inline-flex cursor-pointer list-none items-center gap-1.5 rounded-md text-[13px] text-muted-foreground hover:text-foreground [&::-webkit-details-marker]:hidden">
+        <Flag className="size-3.5" aria-hidden />
         Report this product
       </summary>
-      <form action={formAction} className="mt-3 grid gap-3 rounded-2xl border-2 border-line bg-paper p-4">
+      <form action={formAction} className="mt-3 grid gap-3 rounded-2xl bg-card p-4 shadow-paper ring-1 ring-border">
         <fieldset>
-          <legend className="text-sm font-bold">What&apos;s wrong?</legend>
+          <legend className="text-sm font-semibold">What&apos;s wrong?</legend>
           <div className="mt-2 grid gap-1.5">
             {Object.entries(REPORT_REASONS).map(([value, label]) => (
               <label key={value} className="flex items-center gap-2 text-sm">
-                <input type="radio" name="reason" value={value} required className="accent-[var(--pop)]" />
+                <input type="radio" name="reason" value={value} required className="size-4 accent-[var(--primary)]" />
                 {label}
               </label>
             ))}
           </div>
         </fieldset>
-        <label className="grid gap-1 text-sm">
-          <span className="font-semibold">Details (optional)</span>
-          <textarea
-            name="details"
-            rows={2}
-            maxLength={500}
-            className="w-full resize-y rounded-xl border-2 border-line bg-paper px-3 py-2 text-ink focus:border-ink focus:outline-none"
-          />
+        <label className="grid gap-1.5 text-sm">
+          <span className="font-medium">Details (optional)</span>
+          <Textarea name="details" rows={2} maxLength={500} className="min-h-16 resize-y" />
         </label>
-        {state.status === "error" && <p className="text-sm font-semibold text-danger">{state.error}</p>}
-        <button
-          type="submit"
-          disabled={pending}
-          className="h-10 justify-self-start rounded-xl border-2 border-ink bg-paper px-4 text-sm font-bold hover:bg-signal-wash disabled:opacity-60"
-        >
+        {state.status === "error" && <p className="text-sm font-medium text-destructive">{state.error}</p>}
+        <Button type="submit" variant="outline" size="sm" disabled={pending} className="justify-self-start">
           {pending ? "Sending…" : "Send report"}
-        </button>
+        </Button>
       </form>
     </details>
   );

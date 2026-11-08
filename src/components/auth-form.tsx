@@ -3,10 +3,13 @@
 import { useActionState, useState } from "react";
 import Link from "next/link";
 import { signIn, signUp, type AuthState } from "@/app/auth-actions";
-import { CheckIcon, EyeIcon, LockIcon, MailIcon, UserIcon } from "@/components/icons";
+import { Check, CircleAlert, Eye, EyeOff, Lock, Mail, User } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { cn } from "@/lib/utils";
 
-const inputClass =
-  "h-[52px] w-full rounded-[14px] border-2 border-line bg-paper pl-11 text-ink transition-colors placeholder:text-mist/70 focus:border-ink focus:outline-none aria-[invalid=true]:border-danger";
+const inputClass = "h-11 rounded-[11px] bg-card pl-10 text-[15px] shadow-xs";
 
 /** Rough guidance only; the server just requires 8+ characters. */
 function passwordChecks(password: string) {
@@ -18,7 +21,7 @@ function passwordChecks(password: string) {
 }
 
 const strengthLabels = ["Too short", "Okay", "Good", "Strong"];
-const strengthColors = ["bg-danger", "bg-pop", "bg-signal", "bg-[#2f9e5b]"];
+const strengthColors = ["bg-destructive", "bg-lemon-deep", "bg-lemon-deep", "bg-leaf"];
 
 export function AuthForm({ mode, next }: { mode: "signin" | "signup"; next: string }) {
   const [state, formAction, pending] = useActionState<AuthState, FormData>(
@@ -32,17 +35,18 @@ export function AuthForm({ mode, next }: { mode: "signin" | "signup"; next: stri
   const score = checks[0].met ? checks.filter((c) => c.met).length : 0;
 
   return (
-    <form action={formAction} noValidate className="grid gap-5">
+    <form action={formAction} noValidate className="grid gap-4">
       <input type="hidden" name="next" value={next} />
       {state.error && (
-        <p role="alert" className="rounded-[14px] border-2 border-danger/30 bg-pop-wash px-4 py-3 text-sm font-semibold">
+        <p role="alert" className="flex gap-2 rounded-xl bg-destructive/10 px-4 py-3 text-sm font-medium text-destructive">
+          <CircleAlert className="mt-0.5 size-4 shrink-0" aria-hidden />
           {state.error}
         </p>
       )}
 
       {mode === "signup" && (
-        <Field id="name" label="Your name" error={errors.name} icon={<UserIcon />}>
-          <input
+        <Field id="name" label="Your name" error={errors.name} icon={<User className="size-4" />}>
+          <Input
             id="name"
             name="name"
             autoComplete="name"
@@ -50,13 +54,13 @@ export function AuthForm({ mode, next }: { mode: "signin" | "signup"; next: stri
             defaultValue={state.values?.name}
             aria-invalid={!!errors.name}
             aria-describedby={errors.name ? "name-error" : undefined}
-            className={`${inputClass} pr-3.5`}
+            className={cn(inputClass, "pr-3.5")}
           />
         </Field>
       )}
 
-      <Field id="email" label="Email" error={errors.email} icon={<MailIcon />}>
-        <input
+      <Field id="email" label="Email" error={errors.email} icon={<Mail className="size-4" />}>
+        <Input
           id="email"
           name="email"
           type="email"
@@ -65,12 +69,12 @@ export function AuthForm({ mode, next }: { mode: "signin" | "signup"; next: stri
           defaultValue={state.values?.email}
           aria-invalid={!!errors.email}
           aria-describedby={errors.email ? "email-error" : undefined}
-          className={`${inputClass} pr-3.5`}
+          className={cn(inputClass, "pr-3.5")}
         />
       </Field>
 
-      <Field id="password" label="Password" error={errors.password} icon={<LockIcon />}>
-        <input
+      <Field id="password" label="Password" error={errors.password} icon={<Lock className="size-4" />}>
+        <Input
           id="password"
           name="password"
           type={showPassword ? "text" : "password"}
@@ -80,33 +84,33 @@ export function AuthForm({ mode, next }: { mode: "signin" | "signup"; next: stri
           onChange={(e) => setPassword(e.target.value)}
           aria-invalid={!!errors.password}
           aria-describedby={errors.password ? "password-error" : mode === "signup" ? "password-strength" : undefined}
-          className={`${inputClass} pr-12`}
+          className={cn(inputClass, "pr-11")}
         />
         <button
           type="button"
           onClick={() => setShowPassword((s) => !s)}
           aria-label={showPassword ? "Hide password" : "Show password"}
           aria-pressed={showPassword}
-          className="absolute top-1/2 right-2 grid size-9 -translate-y-1/2 place-items-center rounded-lg text-mist transition-colors hover:bg-signal-wash hover:text-ink"
+          className="absolute top-1/2 right-1.5 grid size-8 -translate-y-1/2 place-items-center rounded-lg text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
         >
-          <EyeIcon off={showPassword} />
+          {showPassword ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
         </button>
       </Field>
 
       {mode === "signup" && (
-        <div id="password-strength" className="-mt-2 grid gap-2.5" aria-live="polite">
+        <div id="password-strength" className="-mt-1 grid gap-2.5" aria-live="polite">
           <div className="flex items-center gap-3">
             <div className="grid flex-1 grid-cols-3 gap-1.5" aria-hidden="true">
               {[1, 2, 3].map((step) => (
                 <span
                   key={step}
                   className={`h-1.5 rounded-full transition-colors ${
-                    password && score >= step ? strengthColors[score] : "bg-line"
+                    password && score >= step ? strengthColors[score] : "bg-muted"
                   }`}
                 />
               ))}
             </div>
-            <span className="w-20 text-right text-xs font-semibold text-mist">
+            <span className="w-20 text-right text-xs font-medium text-muted-foreground">
               {password ? strengthLabels[score] : "Strength"}
             </span>
           </div>
@@ -114,14 +118,15 @@ export function AuthForm({ mode, next }: { mode: "signin" | "signup"; next: stri
             {checks.map((check) => (
               <li
                 key={check.label}
-                className={`flex items-center gap-1 transition-colors ${check.met ? "text-ink" : "text-mist"}`}
+                className={cn("flex items-center gap-1.5 transition-colors", check.met ? "text-foreground" : "text-muted-foreground")}
               >
                 <span
-                  className={`grid size-4 place-items-center rounded-full ${
-                    check.met ? "bg-[#2f9e5b] text-white" : "border-2 border-line"
-                  }`}
+                  className={cn(
+                    "grid size-4 place-items-center rounded-full",
+                    check.met ? "bg-leaf text-white" : "shadow-[inset_0_0_0_1px_var(--input)]",
+                  )}
                 >
-                  {check.met && <CheckIcon className="size-3" />}
+                  {check.met && <Check className="size-3" strokeWidth={3} />}
                 </span>
                 {check.label}
                 <span className="sr-only">{check.met ? " (done)" : " (not yet)"}</span>
@@ -131,11 +136,7 @@ export function AuthForm({ mode, next }: { mode: "signin" | "signup"; next: stri
         </div>
       )}
 
-      <button
-        type="submit"
-        disabled={pending}
-        className="press mt-1 h-14 rounded-2xl border-2 border-on-signal bg-signal text-lg font-bold text-on-signal shadow-[4px_4px_0_0_var(--pop)] disabled:opacity-60"
-      >
+      <Button type="submit" size="lg" disabled={pending} className="mt-2 w-full">
         {pending
           ? mode === "signin"
             ? "Signing in…"
@@ -143,7 +144,7 @@ export function AuthForm({ mode, next }: { mode: "signin" | "signup"; next: stri
           : mode === "signin"
             ? "Sign in"
             : "Create account"}
-      </button>
+      </Button>
     </form>
   );
 }
@@ -162,16 +163,14 @@ function Field({
   children: React.ReactNode;
 }) {
   return (
-    <div className="grid gap-1.5">
-      <label htmlFor={id} className="text-[15px] font-semibold">
-        {label}
-      </label>
+    <div className="grid gap-2">
+      <Label htmlFor={id}>{label}</Label>
       <div className="relative">
-        <span className="pointer-events-none absolute top-1/2 left-3.5 -translate-y-1/2 text-mist">{icon}</span>
+        <span className="pointer-events-none absolute top-1/2 left-3.5 -translate-y-1/2 text-muted-foreground">{icon}</span>
         {children}
       </div>
       {error && (
-        <p id={`${id}-error`} className="text-sm font-semibold text-danger">
+        <p id={`${id}-error`} className="text-sm font-medium text-destructive">
           {error}
         </p>
       )}
@@ -187,17 +186,16 @@ export function AuthSwitch({ mode, next }: { mode: "signin" | "signup"; next: st
     { key: "signup", label: "Create account", href: `/signup${suffix}` },
   ] as const;
   return (
-    <nav aria-label="Account" className="grid grid-cols-2 gap-1 rounded-[14px] border-2 border-line bg-concrete p-1">
+    <nav aria-label="Account" className="grid h-10 grid-cols-2 rounded-xl bg-muted p-[3px] text-muted-foreground">
       {tabs.map((tab) => (
         <Link
           key={tab.key}
           href={tab.href}
           aria-current={mode === tab.key ? "page" : undefined}
-          className={`rounded-[10px] py-2 text-center text-[15px] font-bold transition-colors ${
-            mode === tab.key
-              ? "bg-on-signal text-signal shadow-sm dark:bg-signal dark:text-on-signal"
-              : "text-mist hover:text-ink"
-          }`}
+          className={cn(
+            "grid place-items-center rounded-[9px] text-sm font-medium transition-colors",
+            mode === tab.key ? "bg-card text-foreground shadow-xs" : "hover:text-foreground",
+          )}
         >
           {tab.label}
         </Link>

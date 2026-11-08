@@ -31,6 +31,11 @@ export async function verifyPassword(password: string, stored: string): Promise<
   return actual.length === expected.length && timingSafeEqual(actual, expected);
 }
 
+/** False for accounts with no password ("!"), such as ones created with Google. */
+export function hasPassword(passwordHash: string): boolean {
+  return passwordHash.startsWith("scrypt$");
+}
+
 const hashToken = (token: string) => createHash("sha256").update(token).digest("hex");
 
 /** Starts a session for `userId` and sets the cookie. Server Actions only. */

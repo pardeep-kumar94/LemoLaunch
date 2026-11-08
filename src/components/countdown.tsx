@@ -1,6 +1,7 @@
 "use client";
 
 import { useSyncExternalStore } from "react";
+import { cn } from "@/lib/utils";
 
 function subscribe(onTick: () => void) {
   const timer = setInterval(onTick, 1000);
@@ -10,39 +11,15 @@ function subscribe(onTick: () => void) {
 const currentSecond = () => Math.floor(Date.now() / 1000);
 const noTimeOnServer = () => null;
 
-/** Time left until the next UTC midnight, when the next batch of launches goes live. */
-export function Countdown() {
+/** Time left until the next UTC midnight, when the next edition goes live, as HH:MM:SS. */
+export function Countdown({ className }: { className?: string }) {
   const nowSeconds = useSyncExternalStore(subscribe, currentSecond, noTimeOnServer);
-
-  let parts: [string, string][] = [
-    ["--", "hours"],
-    ["--", "minutes"],
-    ["--", "seconds"],
-  ];
-  if (nowSeconds !== null) {
-    const left = 86_400 - (nowSeconds % 86_400);
-    const pad = (n: number) => String(n).padStart(2, "0");
-    parts = [
-      [pad(Math.floor(left / 3600)), "hours"],
-      [pad(Math.floor((left % 3600) / 60)), "minutes"],
-      [pad(left % 60), "seconds"],
-    ];
-  }
-
+  const pad = (n: number) => String(n).padStart(2, "0");
+  const left = nowSeconds === null ? null : 86_400 - (nowSeconds % 86_400);
+  const [h, m, s] = left === null ? ["--", "--", "--"] : [pad(Math.floor(left / 3600)), pad(Math.floor((left % 3600) / 60)), pad(left % 60)];
   return (
-    <div className="flex gap-2.5" role="timer" aria-label={`${parts[0][0]} hours ${parts[1][0]} minutes left`}>
-      {parts.map(([value, unit]) => (
-        <div
-          key={unit}
-          aria-hidden="true"
-          className="flex-1 rounded-[14px] bg-on-signal pt-3 pb-2 text-center text-signal"
-        >
-          <span className="block font-display text-4xl leading-none font-extrabold tabular-nums sm:text-[44px]">
-            {value}
-          </span>
-          <span className="text-xs opacity-75">{unit}</span>
-        </div>
-      ))}
-    </div>
+    <span role="timer" aria-label={`${h} hours ${m} minutes until the next edition`} className={cn("num", className)}>
+      {h}:{m}:{s}
+    </span>
   );
 }

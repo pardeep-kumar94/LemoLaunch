@@ -1,5 +1,6 @@
 import { db } from "@/lib/db";
 import { addUtcDays, toDayParam } from "@/lib/dates";
+import { DAILY_LAUNCH_LIMIT } from "@/lib/publish";
 
 export type LaunchSummary = {
   id: string;
@@ -107,12 +108,14 @@ export async function getRankedLaunches({
   visitorId,
   topicSlug,
   platform,
+  limit = DAILY_LAUNCH_LIMIT,
 }: {
   from: Date;
   to: Date;
   visitorId: string | null;
   topicSlug?: string;
   platform?: string;
+  limit?: number;
 }) {
   const rows = await db.product.findMany({
     where: {
@@ -121,7 +124,7 @@ export async function getRankedLaunches({
       ...(platform ? { platforms: { has: platform } } : {}),
     },
     orderBy: [{ votes: { _count: "desc" } }, { createdAt: "asc" }],
-    take: 50,
+    take: limit,
     select: summarySelect(visitorId),
   });
   return rows.map(toSummary);
@@ -136,34 +139,6 @@ export function countVotesSince(since: Date): Promise<number> {
   return db.vote.count({ where: { createdAt: { gte: since } } });
 }
 
-/** Products scheduled after `today`, soonest first. */
-export async function getUpcomingLaunches(today: Date, limit = 4) {
-  return db.product.findMany({
-    where: { launchDate: { gt: today } },
-    orderBy: [{ launchDate: "asc" }, { name: "asc" }],
-    take: limit,
-    select: { id: true, slug: true, name: true, tagline: true, accent: true, logoUrl: true, launchDate: true },
-  });
-}
-
-/** The top launches from the launch day before `day`. */
-export async function getPreviousDayTop(day: Date, limit = 3) {
-  const previous = await db.product.findFirst({
-    where: { launchDate: { lt: day } },
-    orderBy: { launchDate: "desc" },
-    select: { launchDate: true },
-  });
-  if (!previous) return null;
-
-  const rows = await db.product.findMany({
-    where: { launchDate: previous.launchDate },
-    orderBy: [{ votes: { _count: "desc" } }, { createdAt: "asc" }],
-    take: limit,
-    select: summarySelect(null),
-  });
-  return { day: previous.launchDate, launches: rows.map(toSummary) };
-}
-
 export function isUpcoming(launchDate: Date, today: Date): boolean {
   return launchDate.getTime() >= addUtcDays(today, 1).getTime();
 }
@@ -176,25 +151,6 @@ export async function getLaunchCountsByDay(from: Date, to: Date) {
     _count: { _all: true },
   });
   return new Map(rows.map((r) => [toDayParam(r.launchDate), r._count._all]));
-}
-
-/** The most-upvoted launch from the seven days ending `today`. */
-export async function getLaunchOfTheWeek(today: Date) {
-  const row = await db.product.findFirst({
-    where: { launchDate: { gte: addUtcDays(today, -6), lte: today } },
-    orderBy: [{ votes: { _count: "desc" } }, { createdAt: "asc" }],
-    select: {
-      slug: true,
-      name: true,
-      tagline: true,
-      accent: true,
-      logoUrl: true,
-      verified: true,
-      launchDate: true,
-      _count: { select: { votes: true } },
-    },
-  });
-  return row && { ...row, voteCount: row._count.votes };
 }
 
 export async function getProductBySlug(slug: string, visitorId: string | null) {
@@ -347,4 +303,23 @@ export async function getFeaturedLaunches(today: Date, limit = 3) {
     select: summarySelect(null),
   });
   return rows.map(toSummary);
+}
+
+/** Today's edition number: launch days since the first product went live, counting from 1. */
+export async function getEditionNumber(today: Date): Promise<number> {
+  const first = await db.product.findFirst({ orderBy: { launchDate: "asc" }, select: { launchDate: true } });
+  if (!first) return 1;
+  return Math.max(1, Math.round((today.getTime() - first.launchDate.getTime()) / 86_400_000) + 1);
+}
+
+/** The most recent launch days before `day` that had launches, newest first. */
+export async function getPreviousLaunchDays(day: Date, limit: number): Promise<{ day: Date; count: number }[]> {
+  const rows = await db.product.groupBy({
+    by: ["launchDate"],
+    where: { launchDate: { lt: day } },
+    _count: { _all: true },
+    orderBy: { launchDate: "desc" },
+    take: limit,
+  });
+  return rows.map((r) => ({ day: r.launchDate, count: r._count._all }));
 }

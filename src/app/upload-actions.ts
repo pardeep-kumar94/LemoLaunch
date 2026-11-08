@@ -7,8 +7,8 @@ export type UploadTargetsResult =
   | { ok: true; targets: UploadTarget[] }
   | { ok: false; error: string; index?: number };
 
-/** Most files one form sends: a logo, four screenshots and a video. */
-const MAX_FILES = 6;
+/** Most files one form sends: a logo and four screenshots. Videos are links, never uploads. */
+const MAX_FILES = 5;
 
 /** Signed upload links for files the signed-in user is about to upload. */
 export async function requestUploadTargets(requests: UploadRequest[]): Promise<UploadTargetsResult> {
@@ -21,7 +21,7 @@ export async function requestUploadTargets(requests: UploadRequest[]): Promise<U
   for (const [index, request] of requests.entries()) {
     const valid =
       request &&
-      (request.kind === "image" || request.kind === "video") &&
+      request.kind === "image" &&
       typeof request.type === "string" &&
       typeof request.size === "number";
     if (!valid) return { ok: false, error: "Choose your files again.", index };

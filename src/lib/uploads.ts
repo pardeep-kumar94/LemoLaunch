@@ -4,7 +4,8 @@ import path from "node:path";
 import { DeleteObjectCommand, GetObjectCommand, PutObjectCommand, S3Client } from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 
-// Uploaded media: logos, screenshots, videos and profile photos. Browsers upload straight to
+// Uploaded media: logos, screenshots and profile photos (product videos are links; videos
+// uploaded before that are still served and deleted here). Browsers upload straight to
 // storage with a short-lived signed link, so files never pass through a Server Action.
 //
 // With the R2_* variables set, files go to a Cloudflare R2 bucket and are served from
@@ -16,7 +17,8 @@ export const UPLOAD_ROOT = path.join(process.cwd(), "uploads");
 export type UploadKind = "image" | "video";
 
 export const LIMITS: Record<UploadKind, number> = {
-  image: 5 * 1024 * 1024,
+  // Matches MAX_IMAGE_BYTES in image-compress.ts; the browser compresses below it before upload.
+  image: 2 * 1024 * 1024,
   video: 50 * 1024 * 1024,
 };
 

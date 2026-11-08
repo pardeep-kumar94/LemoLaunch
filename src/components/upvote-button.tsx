@@ -1,33 +1,32 @@
 "use client";
 
 import { useOptimistic, useState, useTransition } from "react";
+import { ChevronUp } from "lucide-react";
 import { toggleVote } from "@/app/actions";
+import { track } from "@/lib/analytics";
+import { cn } from "@/lib/utils";
 
-// Hard offset shadow, pressed flat on click, like a physical launch button.
-const toneClasses = {
-  surface: {
-    voted: "border-ink bg-pop text-on-signal shadow-[3px_3px_0_0_var(--ink)]",
-    idle: "border-ink bg-paper text-ink shadow-[3px_3px_0_0_var(--ink)] hover:bg-pop-wash",
-  },
-  band: {
-    voted: "border-on-signal bg-pop text-on-signal shadow-[4px_4px_0_0_var(--on-signal)]",
-    idle: "border-on-signal bg-white text-on-signal shadow-[4px_4px_0_0_var(--on-signal)]",
-  },
+const sizes = {
+  md: "size-[58px] rounded-xl text-sm",
+  lg: "size-16 rounded-[14px] text-[15px]",
+  sm: "h-[50px] w-12 rounded-[11px] text-[13px]",
 };
 
+/** The upvote square. Lemon once you've voted; the count updates before the server answers. */
 export function UpvoteButton({
   productId,
   productName,
   voteCount,
   hasVoted,
-  tone = "surface",
+  size = "md",
 }: {
   productId: string;
   productName: string;
   voteCount: number;
   hasVoted: boolean;
-  /** "band" when the button sits on the yellow band. */
-  tone?: "surface" | "band";
+  size?: keyof typeof sizes;
+  /** Ignored; kept so older call sites still compile. */
+  tone?: string;
 }) {
   const [optimistic, setOptimistic] = useOptimistic(
     { voteCount, hasVoted },
@@ -43,27 +42,33 @@ export function UpvoteButton({
     setError(null);
     startTransition(async () => {
       setOptimistic(null);
+      const wasVoted = optimistic.hasVoted;
       const result = await toggleVote(productId);
       if (!result.ok) setError(result.error);
+      else track(wasVoted ? "upvote_removed" : "upvoted", { product_id: productId, product_name: productName });
     });
   }
 
   return (
-    <div className="flex flex-col items-center gap-1">
+    <div className="relative z-10 flex flex-col items-center gap-1">
       <button
         type="button"
         onClick={handleClick}
         aria-pressed={optimistic.hasVoted}
         aria-label={`${optimistic.hasVoted ? "Remove upvote from" : "Upvote"} ${productName}, ${optimistic.voteCount} votes`}
-        className={`press flex h-16 w-[60px] flex-col items-center justify-center gap-1 rounded-[14px] border-2 font-display text-base font-extrabold tabular-nums ${toneClasses[tone][optimistic.hasVoted ? "voted" : "idle"]}`}
+        className={cn(
+          "num grid place-items-center content-center gap-0.5 border font-semibold transition-[background-color,border-color,box-shadow,transform] duration-200 active:translate-y-px",
+          sizes[size],
+          optimistic.hasVoted
+            ? "border-[color-mix(in_oklab,var(--lemon-deep)_80%,black_6%)] bg-lemon text-on-lemon shadow-[0_6px_16px_-10px_var(--lemon-deep)]"
+            : "border-border bg-card text-foreground shadow-xs hover:border-lemon-deep hover:bg-accent",
+        )}
       >
-        <svg viewBox="0 0 12 10" width="12" height="10" aria-hidden="true">
-          <path d="M6 0 L12 10 H0 Z" fill="currentColor" />
-        </svg>
+        <ChevronUp className="size-4" strokeWidth={2.5} aria-hidden />
         {optimistic.voteCount}
       </button>
       {error && (
-        <p role="status" className="max-w-24 text-center text-xs">
+        <p role="status" className="max-w-28 text-center text-xs text-destructive">
           {error}
         </p>
       )}

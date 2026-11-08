@@ -1,10 +1,10 @@
 "use client";
 
 import { useState } from "react";
-import { FacebookLogo, LinkIcon, LinkedInLogo, XLogo } from "@/components/icons";
-
-const buttonClass =
-  "grid size-9 place-items-center rounded-[10px] border-2 border-line bg-paper text-ink transition-colors hover:border-ink";
+import { Check, Link2 } from "lucide-react";
+import { FacebookLogo, LinkedInLogo, XLogo } from "@/components/icons";
+import { Button } from "@/components/ui/button";
+import { track } from "@/lib/analytics";
 
 /** Share links for X, LinkedIn and Facebook, plus copy-to-clipboard. No third-party scripts. */
 export function ShareButtons({ url, text }: { url: string; text: string }) {
@@ -21,6 +21,7 @@ export function ShareButtons({ url, text }: { url: string; text: string }) {
     try {
       await navigator.clipboard.writeText(url);
       setCopied(true);
+      track("share_clicked", { network: "copy_link", url });
       setTimeout(() => setCopied(false), 2000);
     } catch {
       // Clipboard blocked (e.g. insecure context): leave the button as it was.
@@ -28,18 +29,27 @@ export function ShareButtons({ url, text }: { url: string; text: string }) {
   }
 
   return (
-    <div className="flex items-center gap-2">
-      <span className="mr-1 text-sm font-semibold text-mist">Share</span>
+    <div className="flex items-center gap-1.5">
+      <span className="mr-auto text-[13px] text-muted-foreground">Share</span>
       {links.map(({ label, href, Icon }) => (
-        <a key={label} href={href} target="_blank" rel="noopener noreferrer" aria-label={label} className={buttonClass}>
-          <Icon className="size-4" />
-        </a>
+        <Button key={label} asChild variant="outline" size="icon-sm">
+          <a
+            href={href}
+            target="_blank"
+            rel="noopener noreferrer"
+            aria-label={label}
+            onClick={() => track("share_clicked", { network: label.replace("Share on ", "").toLowerCase(), url })}
+          >
+            <Icon className="size-3.5" />
+          </a>
+        </Button>
       ))}
-      <button type="button" onClick={copy} aria-label="Copy link" className={buttonClass}>
-        <LinkIcon className="size-4" />
-      </button>
-      <span role="status" className="text-sm font-semibold text-mist">
-        {copied ? "Copied" : ""}
+      <Button type="button" variant="outline" size="sm" onClick={copy} aria-label="Copy link">
+        {copied ? <Check data-icon="inline-start" /> : <Link2 data-icon="inline-start" />}
+        {copied ? "Copied" : "Copy link"}
+      </Button>
+      <span role="status" className="sr-only">
+        {copied ? "Link copied" : ""}
       </span>
     </div>
   );

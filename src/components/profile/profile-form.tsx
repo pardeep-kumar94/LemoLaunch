@@ -2,8 +2,12 @@
 
 import { useActionState, useEffect, useState, useTransition } from "react";
 import { updateProfile, type FormState } from "@/app/profile/actions";
+import { ImageUp } from "lucide-react";
+import { buttonVariants } from "@/components/ui/button";
 import { UserAvatar } from "@/components/user-avatar";
+import { MAX_IMAGE_BYTES, MAX_IMAGE_LABEL } from "@/lib/image-compress";
 import { uploadFiles } from "@/lib/upload-client";
+import { cn } from "@/lib/utils";
 import { Field, FormStatus, inputClass, saveButtonClass } from "./form-bits";
 
 const socialFields = [
@@ -52,8 +56,12 @@ export function ProfileForm({
     data.delete("avatar");
     setUploadError(null);
     if (file && !remove) {
+      if (file.size > MAX_IMAGE_BYTES) {
+        setUploadError(`Images can be up to ${MAX_IMAGE_LABEL}.`);
+        return;
+      }
       setUploading(true);
-      const result = await uploadFiles([{ file, kind: "image" }]);
+      const result = await uploadFiles([{ file, purpose: "avatar" }]);
       setUploading(false);
       if (!result.ok) {
         setUploadError(result.error);
@@ -67,11 +75,11 @@ export function ProfileForm({
   const shownAvatar = remove ? null : (preview ?? user.avatarUrl);
 
   return (
-    <form onSubmit={handleSubmit} noValidate className="grid gap-6">
+    <form onSubmit={handleSubmit} noValidate className="grid gap-5">
       <div className="grid gap-2">
-        <span className="font-semibold">Profile photo</span>
+        <span className="text-sm font-medium">Profile photo</span>
         <div className="flex flex-wrap items-center gap-5">
-          <UserAvatar name={name || user.name} src={shownAvatar} size="lg" className="border-2 border-ink" />
+          <UserAvatar name={name || user.name} src={shownAvatar} size="lg" className="ring-1 ring-border" />
           <div className="grid gap-2">
             <span className="relative inline-flex w-fit">
               <input
@@ -90,27 +98,28 @@ export function ProfileForm({
               />
               <span
                 aria-hidden="true"
-                className="inline-flex h-11 items-center rounded-xl border-2 border-ink bg-paper px-4 font-semibold shadow-[3px_3px_0_0_var(--ink)] peer-focus-visible:outline-2 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-ink"
+                className={cn(buttonVariants({ variant: "outline" }), "peer-hover:bg-muted peer-focus-visible:ring-3 peer-focus-visible:ring-ring/50")}
               >
+                <ImageUp data-icon="inline-start" />
                 {shownAvatar ? "Change photo" : "Upload photo"}
               </span>
             </span>
             {(user.avatarUrl || file) && (
-              <label className="flex items-center gap-2 text-sm font-semibold">
+              <label className="flex items-center gap-2 text-sm font-medium">
                 <input
                   type="checkbox"
                   name="removeAvatar"
                   checked={remove}
                   onChange={(e) => setRemove(e.target.checked)}
-                  className="size-4 accent-[var(--pop)]"
+                  className="size-4 accent-[var(--primary)]"
                 />
                 Remove photo
               </label>
             )}
             {errors.avatar ? (
-              <p id="avatar-error" className="text-sm font-semibold text-danger">{errors.avatar}</p>
+              <p id="avatar-error" className="text-sm font-medium text-destructive">{errors.avatar}</p>
             ) : (
-              <p id="avatar-hint" className="text-sm text-mist">Square PNG, JPG or WebP, up to 5 MB.</p>
+              <p id="avatar-hint" className="text-[13px] text-muted-foreground">Square PNG, JPG or WebP, up to {MAX_IMAGE_LABEL}. We compress it for you.</p>
             )}
           </div>
         </div>
@@ -149,6 +158,7 @@ export function ProfileForm({
         />
       </Field>
 
+      <div className="grid gap-5 sm:grid-cols-2">
       <Field id="websiteUrl" label="Website" hint="Optional." error={errors.websiteUrl}>
         <input
           id="websiteUrl"
@@ -178,6 +188,7 @@ export function ProfileForm({
           />
         </Field>
       ))}
+      </div>
 
       <FormStatus status={state.status} message={state.message} />
       <button type="submit" disabled={pending || uploading} className={saveButtonClass}>

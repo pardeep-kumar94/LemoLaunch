@@ -1,6 +1,8 @@
 "use client";
 
 import { useState } from "react";
+import { Play } from "lucide-react";
+import { cn } from "@/lib/utils";
 
 /** Product video and screenshots: one large viewer with thumbnails to switch between them. */
 export function MediaGallery({
@@ -22,7 +24,7 @@ export function MediaGallery({
 
   return (
     <section aria-label={`${name} video and screenshots`} className="grid gap-3">
-      <div className="aspect-video overflow-hidden rounded-[20px] border-2 border-ink bg-on-signal shadow-[6px_6px_0_0_var(--pop)]">
+      <div className="aspect-video overflow-hidden rounded-2xl bg-muted shadow-paper ring-1 ring-border">
         {current.type === "video" ? (
           current.kind === "embed" ? (
             <iframe
@@ -41,11 +43,11 @@ export function MediaGallery({
           )
         ) : (
           // eslint-disable-next-line @next/next/no-img-element -- maker-uploaded screenshots of varying size
-          <img src={current.src} alt={`${name} screenshot ${active + (video ? 0 : 1)}`} className="size-full bg-paper object-contain" />
+          <img src={current.src} alt={`${name} screenshot ${active + (video ? 0 : 1)}`} className="size-full bg-card object-contain" />
         )}
       </div>
       {items.length > 1 && (
-        <ul className="flex gap-2.5 overflow-x-auto pb-1">
+        <ul className="flex gap-2 overflow-x-auto p-1">
           {items.map((item, i) => (
             <li key={item.src} className="shrink-0">
               <button
@@ -53,15 +55,14 @@ export function MediaGallery({
                 onClick={() => setActive(i)}
                 aria-label={item.type === "video" ? "Show video" : `Show screenshot ${video ? i : i + 1}`}
                 aria-pressed={i === active}
-                className={`relative grid h-16 w-28 place-items-center overflow-hidden rounded-xl border-2 bg-paper transition-colors ${
-                  i === active ? "border-ink" : "border-line hover:border-ink/50"
-                }`}
+                className={cn(
+                  "relative grid h-16 w-28 place-items-center overflow-hidden rounded-xl bg-card ring-1 transition-[box-shadow,opacity]",
+                  i === active ? "ring-2 ring-primary" : "opacity-75 ring-border hover:opacity-100",
+                )}
               >
                 {item.type === "video" ? (
-                  <span className="grid size-full place-items-center bg-on-signal text-signal">
-                    <svg viewBox="0 0 16 16" aria-hidden="true" className="size-6">
-                      <path d="M5 3.5v9l7.5-4.5L5 3.5Z" fill="currentColor" />
-                    </svg>
+                  <span className="grid size-full place-items-center bg-primary text-primary-foreground">
+                    <Play className="size-5 fill-current" aria-hidden />
                   </span>
                 ) : (
                   // eslint-disable-next-line @next/next/no-img-element -- thumbnail of an uploaded screenshot

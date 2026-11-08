@@ -1,14 +1,21 @@
 import Link from "next/link";
+import { Plus } from "lucide-react";
 import { signOut } from "@/app/auth-actions";
+import { AnalyticsIdentity } from "@/components/analytics/analytics-identity";
 import { NotificationBell } from "@/components/notification-bell";
 import { UserAvatar } from "@/components/user-avatar";
+import { Button } from "@/components/ui/button";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { getCurrentUser } from "@/lib/auth";
 import { startOfUtcDay } from "@/lib/dates";
 import { getNotifications } from "@/lib/notifications";
-
-// No display class here: callers choose (hidden on phones, inline-flex from sm up).
-const submitClass =
-  "press h-11 items-center rounded-xl border-2 border-on-signal bg-on-signal px-4 text-[15px] font-bold whitespace-nowrap text-signal shadow-[4px_4px_0_0_var(--pop)]";
 
 /** Sign-in link or account menu, plus the submit button. Reads the session cookie. */
 export async function HeaderAccount() {
@@ -17,15 +24,16 @@ export async function HeaderAccount() {
   if (!user) {
     return (
       <>
-        <Link
-          href="/signin"
-          className="inline-flex h-11 items-center rounded-xl border-2 border-on-signal bg-white/60 px-4 text-[15px] font-bold whitespace-nowrap transition-colors hover:bg-white"
-        >
-          Sign in
-        </Link>
-        <Link href="/submit" className={`${submitClass} hidden sm:inline-flex`}>
-          Submit a launch
-        </Link>
+        <AnalyticsIdentity user={null} />
+        <Button asChild variant="ghost">
+          <Link href="/signin">Sign in</Link>
+        </Button>
+        <Button asChild className="hidden sm:inline-flex">
+          <Link href="/submit">
+            <Plus data-icon="inline-start" />
+            Submit a launch
+          </Link>
+        </Button>
       </>
     );
   }
@@ -35,9 +43,9 @@ export async function HeaderAccount() {
 
   return (
     <>
-      <Link href="/submit" className={`${submitClass} hidden sm:inline-flex`}>
-        Submit a launch
-      </Link>
+      <AnalyticsIdentity
+        user={{ id: user.id, name: user.name, email: user.email, createdAt: user.createdAt.toISOString() }}
+      />
       <NotificationBell
         unreadCount={notifications.unreadCount}
         items={notifications.items.map(({ launchDate, ...item }) => ({
@@ -45,43 +53,46 @@ export async function HeaderAccount() {
           when: daysAgo(Math.round((today - launchDate.getTime()) / 86_400_000)),
         }))}
       />
-      <details className="group relative">
-        <summary
-          aria-label={`Account menu for ${user.name}`}
-          className="grid size-11 cursor-pointer list-none place-items-center rounded-xl border-2 border-on-signal bg-white/60 transition-colors hover:bg-white [&::-webkit-details-marker]:hidden"
-        >
-          <UserAvatar name={user.name} src={user.avatarUrl} size="sm" />
-        </summary>
-        <div className="absolute right-0 z-20 mt-2 w-64 rounded-2xl border-2 border-ink bg-paper p-2 text-ink shadow-[6px_6px_0_0_var(--pop)]">
-          <Link href="/profile" className="flex items-center gap-3 rounded-xl px-3 pt-2 pb-3 hover:bg-signal-wash">
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <button type="button" aria-label={`Account menu for ${user.name}`} className="rounded-full outline-none focus-visible:ring-3 focus-visible:ring-ring/50">
+            <UserAvatar name={user.name} src={user.avatarUrl} size="sm" className="size-8" />
+          </button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="end" className="w-60">
+          <DropdownMenuLabel className="flex items-center gap-3 py-2 font-normal">
             <UserAvatar name={user.name} src={user.avatarUrl} size="md" />
             <span className="min-w-0">
-              <span className="block truncate font-bold">{user.name}</span>
-              <span className="block truncate text-sm text-mist">{user.email}</span>
+              <span className="block truncate font-semibold text-foreground">{user.name}</span>
+              <span className="block truncate text-xs text-muted-foreground">{user.email}</span>
             </span>
-          </Link>
-          <div className="my-1 h-0.5 bg-line" />
-          <Link href="/profile" className="block rounded-lg px-3 py-2 font-semibold hover:bg-signal-wash">
-            My products
-          </Link>
-          <Link href="/profile?tab=edit" className="block rounded-lg px-3 py-2 font-semibold hover:bg-signal-wash">
-            Edit profile
-          </Link>
-          <Link href="/profile?tab=account" className="block rounded-lg px-3 py-2 font-semibold hover:bg-signal-wash">
-            Account settings
-          </Link>
-
-          <Link href="/submit" className="block rounded-lg px-3 py-2 font-semibold hover:bg-signal-wash sm:hidden">
-            Submit a launch
-          </Link>
-          <div className="my-1 h-0.5 bg-line" />
+          </DropdownMenuLabel>
+          <DropdownMenuSeparator />
+          <DropdownMenuItem asChild>
+            <Link href="/profile">My products</Link>
+          </DropdownMenuItem>
+          <DropdownMenuItem asChild>
+            <Link href="/profile?tab=edit">Edit profile</Link>
+          </DropdownMenuItem>
+          <DropdownMenuItem asChild>
+            <Link href="/profile?tab=account">Account settings</Link>
+          </DropdownMenuItem>
+          <DropdownMenuSeparator />
           <form action={signOut}>
-            <button type="submit" className="w-full rounded-lg px-3 py-2 text-left font-semibold hover:bg-signal-wash">
-              Sign out
-            </button>
+            <DropdownMenuItem asChild>
+              <button type="submit" className="w-full">
+                Sign out
+              </button>
+            </DropdownMenuItem>
           </form>
-        </div>
-      </details>
+        </DropdownMenuContent>
+      </DropdownMenu>
+      <Button asChild className="hidden sm:inline-flex">
+        <Link href="/submit">
+          <Plus data-icon="inline-start" />
+          Submit a launch
+        </Link>
+      </Button>
     </>
   );
 }
@@ -93,5 +104,5 @@ function daysAgo(days: number): string {
 }
 
 export function HeaderAccountFallback() {
-  return <span aria-hidden="true" className="h-11 w-24 rounded-xl bg-on-signal/10" />;
+  return <span aria-hidden="true" className="h-9 w-40 rounded-[10px] bg-muted" />;
 }

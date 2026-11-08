@@ -1,27 +1,41 @@
 import { db } from "@/lib/db";
 import { addUtcDays, startOfUtcDay } from "@/lib/dates";
 
-// Launches publish themselves: free ones on the next open day, Launch Pass ones on the
-// day the maker picked, as soon as the payment succeeds.
+// Launches publish themselves: free ones join the queue and take the next day with room,
+// Launch Pass ones go on the day the maker picked, as soon as the payment succeeds.
 
-/** Free launches per day before the next free launch moves to the following day. */
-export const FREE_SLOTS_PER_DAY = 8;
+/** At most this many products launch on one day; the queue moves on to the next day after that. */
+export const DAILY_LAUNCH_LIMIT = 100;
 
 /** Days a Launch Pass keeps a product in the "Featured launches" panel, counting launch day. */
 export const FEATURED_DAYS = 7;
 
-/** The first day from tomorrow with room for another free launch. */
-export async function nextOpenLaunchDay(today: Date): Promise<Date> {
+/**
+ * Where a new free launch would land in the queue: the first day from tomorrow with fewer than
+ * DAILY_LAUNCH_LIMIT launches, how many launches are scheduled ahead of it, and how many are
+ * already on that day (so the new launch takes seat `onDay + 1`).
+ */
+export async function launchQueue(today: Date): Promise<{ day: Date; ahead: number; onDay: number }> {
   const from = addUtcDays(today, 1);
   const rows = await db.product.groupBy({
     by: ["launchDate"],
-    where: { launchDate: { gte: from, lte: addUtcDays(from, 120) }, featuredUntil: null },
+    where: { launchDate: { gte: from } },
     _count: { _all: true },
   });
   const counts = new Map(rows.map((r) => [r.launchDate.getTime(), r._count._all]));
   let day = from;
-  while ((counts.get(day.getTime()) ?? 0) >= FREE_SLOTS_PER_DAY) day = addUtcDays(day, 1);
-  return day;
+  let ahead = 0;
+  for (let count = counts.get(day.getTime()) ?? 0; count >= DAILY_LAUNCH_LIMIT; count = counts.get(day.getTime()) ?? 0) {
+    ahead += count;
+    day = addUtcDays(day, 1);
+  }
+  const onDay = counts.get(day.getTime()) ?? 0;
+  return { day, ahead: ahead + onDay, onDay };
+}
+
+/** The first day from tomorrow with room for another launch. */
+export async function nextOpenLaunchDay(today: Date): Promise<Date> {
+  return (await launchQueue(today)).day;
 }
 
 /** Lowercase, hyphenated, and unique among products. */
@@ -49,7 +63,7 @@ function accentFor(name: string): string {
 
 /**
  * Turns a submission into a scheduled product owned by its maker. Free launches take the next
- * open day; a paid Launch Pass keeps the maker's day (or tomorrow, if that day has passed).
+ * day with room in the queue; a paid Launch Pass keeps the maker's day (or tomorrow, if that day has passed).
  * Does nothing if the submission is already published or still waiting for payment.
  */
 export async function publishSubmission(submissionId: string): Promise<{ slug: string; launchDate: Date } | null> {

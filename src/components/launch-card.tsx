@@ -1,92 +1,110 @@
 import Link from "next/link";
-import { MakerAvatar, RankBadge, VerifiedBadge } from "@/components/badges";
-import { CommentIcon } from "@/components/icons";
+import { MessageCircle, Pin, Zap } from "lucide-react";
+import { MakerAvatar, VerifiedBadge } from "@/components/badges";
 import { LogoTile } from "@/components/logo-tile";
 import { PlatformBadges } from "@/components/platform-badges";
+import { Badge } from "@/components/ui/badge";
 import { UpvoteButton } from "@/components/upvote-button";
 import type { LaunchSummary } from "@/lib/launches";
+import { cn } from "@/lib/utils";
 
-/** One product in a ranked list. The whole card opens the product page. */
+/** A card holding launch rows, separated by hairlines. Children are LaunchCard items. */
+export function LaunchList({ children, className }: { children: React.ReactNode; className?: string }) {
+  return (
+    <ol className={cn("divide-y divide-border overflow-hidden rounded-2xl bg-card shadow-paper ring-1 ring-border", className)}>
+      {children}
+    </ol>
+  );
+}
+
+/** One product in a ranked list. The whole row opens the product page. */
 export function LaunchCard({
   launch,
   rank,
   topicHref = (slug) => `/categories/${slug}`,
+  pinned,
+  promoted = false,
 }: {
   launch: LaunchSummary;
-  /** Position in the list, shown on the left; the top three also get a medal. */
+  /** Position in the list, shown on the left. */
   rank?: number;
   topicHref?: (slug: string) => string;
+  /** Fast Track: pinned to the top, with how much of the pinned time is left (0 to 1). */
+  pinned?: { remaining: number };
+  /** Paid placement; shown with a Promoted label and no rank. */
+  promoted?: boolean;
 }) {
+  const label = pinned ? "Fast Track" : launch.featured ? "Featured" : null;
+  // Unranked lists (search results) drop the rank column entirely.
+  const showRank = rank !== undefined || Boolean(pinned) || promoted;
   return (
-    <li>
-      <article
-        className={`relative flex items-center gap-3.5 rounded-[18px] border-2 p-4 transition-colors sm:gap-5 sm:px-5 ${
-          launch.featured ? "border-pop bg-pop-wash" : "border-line bg-paper hover:border-ink"
-        }`}
-      >
-        {launch.featured && (
-          <span className="absolute -top-3 left-4 rounded-full border-2 border-on-signal bg-pop px-2.5 py-px text-[11px] font-bold text-on-signal sm:left-5">
-            Featured
-          </span>
-        )}
-        {rank !== undefined && (
-          <span className="hidden w-7 shrink-0 text-center font-display text-[22px] font-extrabold text-mist tabular-nums sm:block">
-            {rank}
-          </span>
-        )}
+    <li
+      className={cn(
+        "group relative grid grid-cols-[minmax(0,1fr)_auto] items-center gap-3.5 px-4 py-4 transition-colors sm:px-5",
+        showRank ? "sm:grid-cols-[28px_48px_minmax(0,1fr)_auto]" : "sm:grid-cols-[48px_minmax(0,1fr)_auto]",
+        promoted ? "bg-[color-mix(in_oklab,var(--muted)_55%,var(--card))]" : "hover:bg-[color-mix(in_oklab,var(--accent)_55%,var(--card))]",
+      )}
+    >
+      {showRank && (
+        <span className="num hidden text-center text-[13px] text-muted-foreground sm:block">
+          {pinned ? <Pin className="mx-auto size-4 text-foreground" aria-label="Pinned" /> : promoted ? null : rank}
+        </span>
+      )}
+      <div className="flex min-w-0 items-center gap-3.5 sm:contents">
         <LogoTile name={launch.name} accent={launch.accent} src={launch.logoUrl} />
-        <div className="min-w-0 flex-1">
+        <div className="min-w-0">
           <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
-            <h3 className="font-display text-lg leading-tight font-extrabold sm:text-[19px]">
+            <h3 className="text-[15.5px] leading-tight font-semibold tracking-[-0.01em]">
               <Link
                 href={`/products/${launch.slug}`}
-                className="decoration-pop decoration-[3px] underline-offset-4 after:absolute after:inset-0 after:rounded-[18px] hover:underline"
+                className="outline-none after:absolute after:inset-0 focus-visible:underline focus-visible:decoration-lemon-deep focus-visible:decoration-2"
               >
                 {launch.name}
               </Link>
             </h3>
             {launch.verified && <VerifiedBadge />}
-            {rank !== undefined && <RankBadge rank={rank} />}
+            {label && (
+              <Badge variant="lemon">
+                <Zap aria-hidden />
+                {label}
+              </Badge>
+            )}
+            {promoted && <Badge variant="secondary">Promoted</Badge>}
           </div>
-          <p className="mt-0.5 text-mist sm:truncate">{launch.tagline}</p>
-          <div className="mt-2 flex flex-wrap items-center gap-x-3.5 gap-y-1.5 text-sm">
-            <span className="flex items-center gap-1.5 text-mist">
-              <MakerAvatar name={launch.maker} />
-              {launch.maker}
-            </span>
-            <PlatformBadges platforms={launch.platforms} />
-            {launch.topics.map((t) => (
+          <p className="mt-0.5 text-muted-foreground sm:truncate">{launch.tagline}</p>
+          <div className="mt-1.5 flex flex-wrap items-center gap-x-2.5 gap-y-1 text-[12.5px] text-muted-foreground">
+            {launch.topics.slice(0, 2).map((t) => (
               <Link
                 key={t.slug}
                 href={topicHref(t.slug)}
                 scroll={false}
-                className="relative z-10 font-semibold hover:underline hover:decoration-pop hover:decoration-2 hover:underline-offset-4"
+                className="relative z-10 font-medium text-foreground hover:underline hover:decoration-lemon-deep hover:decoration-2"
               >
-                <span aria-hidden="true" className="font-extrabold text-pop">
-                  #
-                </span>
                 {t.name}
               </Link>
             ))}
+            <PlatformBadges platforms={launch.platforms} />
+            <span className="hidden items-center gap-1.5 sm:inline-flex">
+              <MakerAvatar name={launch.maker} />
+              {launch.maker}
+            </span>
             <Link
-              href={`/products/${launch.slug}#comments`}
-              className="relative z-10 flex items-center gap-1 text-mist hover:text-ink"
+              href={`/products/${launch.slug}#discussion`}
+              className="relative z-10 inline-flex items-center gap-1 hover:text-foreground"
             >
-              <CommentIcon className="size-4" />
-              <span className="tabular-nums">{launch.commentCount}</span>
+              <MessageCircle className="size-3" aria-hidden />
+              <span className="num">{launch.commentCount}</span>
               <span className="sr-only">{launch.commentCount === 1 ? " comment" : " comments"}</span>
             </Link>
           </div>
         </div>
-        <div className="relative z-10">
-          <UpvoteButton
-            productId={launch.id}
-            productName={launch.name}
-            voteCount={launch.voteCount}
-            hasVoted={launch.hasVoted}
-          />
-        </div>
-      </article>
+      </div>
+      <UpvoteButton productId={launch.id} productName={launch.name} voteCount={launch.voteCount} hasVoted={launch.hasVoted} />
+      {pinned && (
+        <span aria-hidden className="absolute inset-x-0 -bottom-px h-[3px] bg-[color-mix(in_oklab,var(--lemon)_30%,transparent)]">
+          <span className="block h-full rounded-r-full bg-lemon-deep" style={{ width: `${Math.round(pinned.remaining * 100)}%` }} />
+        </span>
+      )}
     </li>
   );
 }

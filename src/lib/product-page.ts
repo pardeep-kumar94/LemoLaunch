@@ -1,9 +1,9 @@
 import type { Prisma } from "@prisma/client";
 import { db } from "@/lib/db";
-import { addUtcDays, formatLaunchDay } from "@/lib/dates";
+import { addUtcDays } from "@/lib/dates";
 import { platformLabels, sortPlatforms } from "@/lib/platforms";
 
-// Facts, rankings, reviews and FAQ for the product page.
+// Facts, rankings and reviews for the product page.
 
 export const PRICING_MODELS = ["free", "freemium", "paid"] as const;
 export type PricingModel = (typeof PRICING_MODELS)[number];
@@ -127,59 +127,4 @@ export function getCategoryWeekRank(
     launchDate: { gte: weekStart, lte: weekEnd.getTime() < today.getTime() ? weekEnd : today },
     topics: { some: { slug: topicSlug } },
   });
-}
-
-export type Faq = { question: string; answer: string };
-
-/** Questions and answers written from the product's facts. Only facts that exist get a question. */
-export function buildFaq(product: {
-  name: string;
-  maker: string;
-  pricingModel: string | null;
-  freeTrialDays: number | null;
-  platforms: string[];
-  launchDate: Date;
-  upcoming: boolean;
-  alternatives: string[];
-}): Faq[] {
-  const { name } = product;
-  const faq: Faq[] = [];
-  const pricing = isPricingModel(product.pricingModel) ? product.pricingModel : null;
-  if (pricing) {
-    const trial = product.freeTrialDays
-      ? ` You can try it free for ${product.freeTrialDays} ${product.freeTrialDays === 1 ? "day" : "days"}.`
-      : "";
-    const answer = {
-      free: `Yes. ${name} is free to use.`,
-      freemium: `${name} has a free plan, with paid plans for more features.${trial}`,
-      paid: `No. ${name} is a paid product.${trial}`,
-    }[pricing];
-    faq.push({ question: `Is ${name} free?`, answer });
-  }
-  if (product.platforms.length > 0) {
-    faq.push({
-      question: `What platforms does ${name} run on?`,
-      answer: `${name} is available on ${platformList(product.platforms)}.`,
-    });
-  }
-  faq.push({ question: `Who made ${name}?`, answer: `${name} was made by ${product.maker}.` });
-  const { weekday, day } = formatLaunchDay(product.launchDate);
-  const year = product.launchDate.getUTCFullYear();
-  faq.push(
-    product.upcoming
-      ? { question: `When does ${name} launch?`, answer: `${name} launches on LemoLaunch on ${weekday}, ${day} ${year}.` }
-      : { question: `When did ${name} launch?`, answer: `${name} launched on LemoLaunch on ${weekday}, ${day} ${year}.` },
-  );
-  if (product.alternatives.length > 0) {
-    faq.push({
-      question: `What are alternatives to ${name}?`,
-      answer: `Popular alternatives on LemoLaunch include ${joinNames(product.alternatives.slice(0, 3))}.`,
-    });
-  }
-  return faq;
-}
-
-function joinNames(names: string[]): string {
-  if (names.length <= 1) return names.join("");
-  return `${names.slice(0, -1).join(", ")} and ${names[names.length - 1]}`;
 }

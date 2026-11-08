@@ -1,15 +1,24 @@
 import type { Metadata } from "next";
+import { pageMetadata } from "@/lib/seo";
 import { Suspense } from "react";
 import Link from "next/link";
 import { connection } from "next/server";
-import { SearchIcon } from "@/components/icons";
-import { LaunchCard } from "@/components/launch-card";
-import { PageBand, TopicChips } from "@/components/sections";
+import { Search as SearchIcon } from "lucide-react";
+import { LaunchCard, LaunchList } from "@/components/launch-card";
+import { CategoryGrid, PageBand } from "@/components/sections";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { startOfUtcDay } from "@/lib/dates";
 import { getTopicDirectory, searchLaunches } from "@/lib/launches";
 import { readVisitorId } from "@/lib/visitor";
+import { TrackView } from "@/components/analytics/track-view";
 
-export const metadata: Metadata = { title: "Search | LemoLaunch" };
+export const metadata: Metadata = pageMetadata({
+  title: "Search launches",
+  description: "Search every startup, app and tool launched on LemoLaunch, and the makers behind them.",
+  path: "/search",
+  noindex: true,
+});
 
 export default function SearchPage({ searchParams }: PageProps<"/search">) {
   return (
@@ -35,60 +44,55 @@ async function Search({ searchParams }: { searchParams: PageProps<"/search">["se
 
   return (
     <>
-      <PageBand title="Search launches">
-        <form action="/search" role="search" className="mt-8 flex max-w-2xl gap-2">
-          <label className="flex h-14 flex-1 items-center gap-3 rounded-2xl border-2 border-on-signal bg-white px-4 shadow-[6px_6px_0_0_var(--on-signal)]">
-            <SearchIcon className="size-5 text-on-signal/60" />
+      {query && <TrackView event="search_performed" properties={{ query, results: results.length }} />}
+      <PageBand title="Search launches" description="Every product launched on LemoLaunch, and the makers behind them.">
+        <form action="/search" role="search" className="mt-7 flex max-w-2xl gap-2">
+          <label className="relative flex-1">
             <span className="sr-only">Search by name, description or maker</span>
-            <input
+            <SearchIcon className="pointer-events-none absolute top-1/2 left-3.5 size-5 -translate-y-1/2 text-muted-foreground" aria-hidden />
+            <Input
               name="q"
               type="search"
               defaultValue={query}
               autoFocus={!query}
               placeholder="Try “postgres”, “travel” or a maker’s name"
-              className="w-full bg-transparent text-lg text-on-signal placeholder:text-on-signal/50 focus:outline-none"
+              className="h-12 rounded-xl bg-card pl-11 text-base md:text-base"
             />
           </label>
-          <button
-            type="submit"
-            className="press h-14 rounded-2xl border-2 border-on-signal bg-on-signal px-6 font-bold text-signal shadow-[4px_4px_0_0_var(--pop)]"
-          >
+          <Button type="submit" size="lg" className="h-12">
             Search
-          </button>
+          </Button>
         </form>
       </PageBand>
 
-      <div className="mx-auto max-w-4xl px-4 py-10 sm:px-8">
+      <div className="mx-auto max-w-6xl px-4 pt-8 sm:px-8">
         {!query ? (
           <section aria-labelledby="browse-heading">
-            <h2 id="browse-heading" className="font-display text-xl font-semibold">
+            <h2 id="browse-heading" className="font-display text-[22px] font-bold">
               Or browse a category
             </h2>
             <div className="mt-4">
-              <TopicChips topics={directory} />
+              <CategoryGrid topics={directory} />
             </div>
           </section>
         ) : results.length > 0 ? (
-          <section aria-labelledby="results-heading">
-            <h2 id="results-heading" className="font-display text-xl font-semibold">
+          <section aria-labelledby="results-heading" className="max-w-4xl">
+            <h2 id="results-heading" className="font-display text-[22px] font-bold">
               {results.length} {results.length === 1 ? "launch matches" : "launches match"} “{query}”
             </h2>
-            <ol className="mt-6 flex flex-col gap-3.5">
+            <LaunchList className="mt-4">
               {results.map((launch) => (
                 <LaunchCard key={launch.id} launch={launch} />
               ))}
-            </ol>
+            </LaunchList>
           </section>
         ) : (
-          <div className="rounded-2xl border-2 border-dashed border-line px-6 py-12 text-center">
+          <div className="max-w-4xl rounded-2xl border border-dashed border-input px-6 py-12 text-center">
             <p className="text-lg">No launches match “{query}”.</p>
-            <p className="mt-1 text-mist">Check the spelling, or try a shorter word.</p>
-            <Link
-              href="/categories"
-              className="mt-4 inline-block font-semibold underline decoration-pop decoration-[3px] underline-offset-4"
-            >
-              Browse categories instead
-            </Link>
+            <p className="mt-1 text-muted-foreground">Check the spelling, or try a shorter word.</p>
+            <Button asChild variant="outline" className="mt-5">
+              <Link href="/categories">Browse categories instead</Link>
+            </Button>
           </div>
         )}
       </div>

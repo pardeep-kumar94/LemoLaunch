@@ -169,7 +169,7 @@ export async function submitLaunch(
     errors.description = "Describe your product in 20 to 600 characters.";
   }
 
-  // Launch Pass makers pick their day; free launches take the next open day.
+  // Launch Pass makers pick their day; free launches join the queue for the next day with room.
   const plan = text("plan") === "pass" ? "pass" : "free";
   if (plan === "pass" && paymentMode() === "off") {
     errors.plan = "The Launch Pass isn't available right now. Choose the free launch instead.";
@@ -196,21 +196,11 @@ export async function submitLaunch(
     if (bad && !bad.ok) errors.gallery = bad.error;
   }
 
-  const videoMode = text("videoMode") === "link" ? "link" : "file";
+  // The video is optional and always a link; files are never uploaded for it.
   let videoUrl = "";
-  // The video is optional: check it only when one was given.
-  if (videoMode === "link") {
-    const link = text("videoLink");
-    if (link && !toEmbedUrl(link)) errors.video = "Paste a YouTube, Vimeo or Loom link to your video.";
-    else videoUrl = link;
-  } else {
-    const [uploadedVideo] = urls("videoUrl");
-    if (uploadedVideo) {
-      const video = await verifyUpload(uploadedVideo, "video");
-      if (!video.ok) errors.video = video.error;
-      else videoUrl = uploadedVideo;
-    }
-  }
+  const videoLink = text("videoLink");
+  if (videoLink && !toEmbedUrl(videoLink)) errors.video = "Paste a YouTube, Vimeo or Loom link to your video.";
+  else videoUrl = videoLink;
 
   if (Object.keys(errors).length > 0 || !topic || !logoUrl) {
     return { status: "error", errors };

@@ -1,39 +1,35 @@
 import type { Metadata } from "next";
+import { absoluteUrl, jsonLd, pageMetadata } from "@/lib/seo";
 import { Suspense } from "react";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { connection } from "next/server";
+import { Check, ChevronRight, ExternalLink, Globe, MessageCircle, Smartphone, Star, Ticket } from "lucide-react";
 import { BadgeEmbed } from "@/components/badge-embed";
 import { VerifiedBadge } from "@/components/badges";
 import { CommentForm } from "@/components/comment-form";
 import { LogoTile } from "@/components/logo-tile";
-import {
-  CheckIcon,
-  CommentIcon,
-  ExternalIcon,
-  GitHubLogo,
-  GlobeIcon,
-  LinkedInLogo,
-  PhoneIcon,
-  StarIcon,
-  XLogo,
-} from "@/components/icons";
+import { GitHubLogo, LinkedInLogo, XLogo } from "@/components/icons";
 import { MediaGallery } from "@/components/media-gallery";
+import { PlatformBadges } from "@/components/platform-badges";
 import { FollowButton } from "@/components/product/follow-button";
 import { ReportForm } from "@/components/product/report-form";
 import { ReviewForm } from "@/components/product/review-form";
 import { SectionTabs } from "@/components/product/section-tabs";
+import { TrackView } from "@/components/analytics/track-view";
 import { ShareButtons } from "@/components/product/share-buttons";
 import { Stars } from "@/components/product/stars";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { UserAvatar } from "@/components/user-avatar";
 import { UpvoteButton } from "@/components/upvote-button";
 import { db } from "@/lib/db";
 import { formatLaunchDay, isSameUtcDay, startOfUtcDay, toDayParam } from "@/lib/dates";
 import { getCurrentUser } from "@/lib/auth";
 import { siteOrigin } from "@/lib/origin";
-import { getComments, getProductBySlug, getRelatedLaunches, isUpcoming } from "@/lib/launches";
+import { getComments, getEditionNumber, getProductBySlug, getRelatedLaunches, isUpcoming } from "@/lib/launches";
 import {
-  buildFaq,
   formatRating,
   getCategoryWeekRank,
   getLaunchDayRank,
@@ -47,21 +43,36 @@ import {
 } from "@/lib/product-page";
 import { isStoredUpload, toEmbedUrl } from "@/lib/uploads";
 import { readVisitorId } from "@/lib/visitor";
+import { cn } from "@/lib/utils";
 
 const SLUG_PATTERN = /^[a-z0-9-]{1,80}$/;
 const DAY_MS = 86_400_000;
-const sectionClass = "scroll-mt-20";
-const h2Class = "font-display text-[28px] leading-tight font-extrabold";
+// Sections clear the sticky site header (64px) and the section tabs (about 45px).
+const sectionClass = "scroll-mt-32";
+const h2Class = "font-display text-2xl font-bold";
 
 export async function generateMetadata({
   params,
 }: PageProps<"/products/[slug]">): Promise<Metadata> {
   const { slug } = await params;
   const product = SLUG_PATTERN.test(slug)
-    ? await db.product.findUnique({ where: { slug }, select: { name: true, tagline: true } })
+    ? await db.product.findUnique({
+        where: { slug },
+        select: { name: true, tagline: true, description: true, topics: { select: { name: true }, take: 1 } },
+      })
     : null;
-  if (!product) return { title: "Product not found | LemoLaunch" };
-  return { title: `${product.name} | LemoLaunch`, description: product.tagline };
+  if (!product) return { title: "Product not found", robots: { index: false } };
+  const category = product.topics[0]?.name;
+  const description = clip(
+    `${product.tagline}. ${product.description ?? ""}`.trim() ||
+      `${product.name} on LemoLaunch${category ? `, a new ${category} product` : ""}.`,
+    158,
+  );
+  return pageMetadata({
+    title: `${product.name}: ${product.tagline}`,
+    description,
+    path: `/products/${slug}`,
+  });
 }
 
 export default function ProductPage({ params }: PageProps<"/products/[slug]">) {
@@ -92,7 +103,7 @@ async function Product({ params }: { params: PageProps<"/products/[slug]">["para
   const launchYear = product.launchDate.getUTCFullYear();
   const category = primaryTopic(product);
 
-  const [alternatives, comments, user, reviews, dayRank, categoryRank, origin] = await Promise.all([
+  const [alternatives, comments, user, reviews, dayRank, categoryRank, origin, edition, starCounts] = await Promise.all([
     category ? getRelatedLaunches(product.id, category.slug, today, 6) : [],
     getComments(product.id),
     getCurrentUser(),
@@ -100,6 +111,10 @@ async function Product({ params }: { params: PageProps<"/products/[slug]">["para
     upcoming ? null : getLaunchDayRank(product),
     upcoming || !category ? null : getCategoryWeekRank(product, category.slug, today),
     siteOrigin(),
+    getEditionNumber(product.launchDate),
+    upcoming
+      ? []
+      : db.review.groupBy({ by: ["rating"], where: { productId: product.id }, _count: { _all: true } }),
   ]);
   const competitor = alternatives[0];
   const [ratings, following] = await Promise.all([
@@ -121,17 +136,15 @@ async function Product({ params }: { params: PageProps<"/products/[slug]">["para
   const freePlan = hasFreePlan(product.pricingModel);
   const pageUrl = `${origin}/products/${product.slug}`;
   const productPath = `/products/${product.slug}`;
-  const status = upcoming
-    ? `Launching ${weekday}, ${day}`
-    : launchedToday
-      ? "Launched today"
-      : `Launched ${weekday}, ${day}`;
-
   const getLinks = [
-    product.websiteUrl && { platform: "web", href: product.websiteUrl, eyebrow: "Visit", label: "Website" },
-    product.appStoreUrl && { platform: "ios", href: product.appStoreUrl, eyebrow: "Download on the", label: "App Store" },
-    product.playStoreUrl && { platform: "android", href: product.playStoreUrl, eyebrow: "Get it on", label: "Google Play" },
-  ].filter((link): link is { platform: string; href: string; eyebrow: string; label: string } => Boolean(link));
+    product.websiteUrl && { platform: "web", href: product.websiteUrl, label: `Visit ${hostOf(product.websiteUrl)}` },
+    product.appStoreUrl && { platform: "ios", href: product.appStoreUrl, label: "App Store" },
+    product.playStoreUrl && { platform: "android", href: product.playStoreUrl, label: "Google Play" },
+  ].filter((link): link is { platform: string; href: string; label: string } => Boolean(link));
+  const outboundKind: Record<string, string> = { web: "website", ios: "app_store", android: "google_play" };
+  const starTotal = starCounts.reduce((sum, row) => sum + row._count._all, 0);
+  const starShare = (n: number) =>
+    starTotal === 0 ? 0 : Math.round(((starCounts.find((row) => row.rating === n)?._count._all ?? 0) / starTotal) * 100);
 
   const video = !product.videoUrl
     ? null
@@ -143,47 +156,53 @@ async function Product({ params }: { params: PageProps<"/products/[slug]">["para
         })();
   const hasMedia = Boolean(video) || product.galleryUrls.length > 0;
 
-  const faq = buildFaq({
-    name: product.name,
-    maker: product.maker,
-    pricingModel: product.pricingModel,
-    freeTrialDays: product.freeTrialDays,
-    platforms: product.platforms,
-    launchDate: product.launchDate,
-    upcoming,
-    alternatives: alternatives.map((a) => a.name),
-  });
-
   const sections = [
     product.description && { id: "overview", label: "Overview" },
-    { id: "facts", label: "Key facts" },
     hasMedia && { id: "screenshots", label: "Screenshots" },
     product.features.length > 0 && { id: "features", label: "Features" },
-    !upcoming && { id: "reviews", label: "Reviews" },
+    !upcoming && { id: "reviews", label: rating ? `Reviews · ${formatRating(rating.average)}` : "Reviews" },
     competitor && { id: "compare", label: "Compare" },
-    { id: "faq", label: "FAQ" },
-    { id: "discussion", label: "Discussion" },
+    { id: "discussion", label: comments.length > 0 ? `Discussion · ${comments.length}` : "Discussion" },
     alternatives.length > 0 && { id: "alternatives", label: "Alternatives" },
   ].filter((s): s is { id: string; label: string } => Boolean(s));
 
+  const outbound = (href: string, kind: string, label: string) => (
+    <a href={href} target="_blank" rel="noopener noreferrer" data-track-outbound={kind} data-product-slug={product.slug} className={`${linkClass} inline-flex max-w-full items-center gap-1`}>
+      <span className="truncate">{label}</span>
+      <ExternalLink className="size-3.5 shrink-0" aria-hidden />
+    </a>
+  );
   const facts: [string, React.ReactNode][] = [
+    ["Website", product.websiteUrl && outbound(product.websiteUrl, "website", hostOf(product.websiteUrl))],
+    ["App Store", product.appStoreUrl && outbound(product.appStoreUrl, "app_store", "Download")],
+    ["Google Play", product.playStoreUrl && outbound(product.playStoreUrl, "google_play", "Download")],
     ["Category", category && <Link href={`/categories/${category.slug}`} className={linkClass}>{category.name}</Link>],
     ["Pricing", pricing],
     ["Free plan", freePlan === null ? null : freePlan ? "Yes" : "No"],
     ["Free trial", product.freeTrialDays ? `${product.freeTrialDays} days` : null],
     ["Platforms", product.platforms.length > 0 ? platformList(product.platforms) : null],
-    [upcoming ? "Launches" : "Launched", `${weekday.slice(0, 3)}, ${day} ${launchYear}`],
-    ["Launch day rank", dayRank && `#${dayRank.rank} of ${dayRank.of}`],
-    ["Maker", product.maker],
+    ["Week rank", categoryRank && category && `#${categoryRank.rank} in ${category.name}`],
     ["Rating", rating && `${formatRating(rating.average)} out of 5 (${rating.count})`],
   ];
+  const ticketStats: [string, React.ReactNode][] = upcoming
+    ? [
+        ["Goes live", `${weekday.slice(0, 3)} ${day.split(" ")[0]} ${day.split(" ")[1]?.slice(0, 3) ?? ""}`],
+        ["Time", "00:00 UTC"],
+      ]
+    : [
+        ["Day rank", dayRank ? `#${dayRank.rank} of ${dayRank.of}` : "–"],
+        ["Upvotes", product.voteCount.toLocaleString("en-US")],
+        ["Launched", launchedToday ? "Today" : `${weekday.slice(0, 3)} ${day.split(" ")[0]} ${day.split(" ")[1]?.slice(0, 3) ?? ""}`],
+        ["Comments", comments.length.toLocaleString("en-US")],
+      ];
 
-  const makerLinks = [
-    product.makerProfile?.websiteUrl && { label: "Website", href: product.makerProfile.websiteUrl, Icon: GlobeIcon },
-    product.makerProfile?.xUrl && { label: "X", href: product.makerProfile.xUrl, Icon: XLogo },
-    product.makerProfile?.githubUrl && { label: "GitHub", href: product.makerProfile.githubUrl, Icon: GitHubLogo },
-    product.makerProfile?.linkedinUrl && { label: "LinkedIn", href: product.makerProfile.linkedinUrl, Icon: LinkedInLogo },
-  ].filter((l): l is { label: string; href: string; Icon: typeof GlobeIcon } => Boolean(l));
+  const profile = product.makerProfile;
+  const makerLinks: { label: string; href: string; Icon: (props: { className?: string }) => React.ReactNode }[] = [
+    ...(profile?.websiteUrl ? [{ label: "Website", href: profile.websiteUrl, Icon: Globe }] : []),
+    ...(profile?.xUrl ? [{ label: "X", href: profile.xUrl, Icon: XLogo }] : []),
+    ...(profile?.githubUrl ? [{ label: "GitHub", href: profile.githubUrl, Icon: GitHubLogo }] : []),
+    ...(profile?.linkedinUrl ? [{ label: "LinkedIn", href: profile.linkedinUrl, Icon: LinkedInLogo }] : []),
+  ];
 
   return (
     <>
@@ -191,190 +210,216 @@ async function Product({ params }: { params: PageProps<"/products/[slug]">["para
         type="application/ld+json"
         // JSON-LD for search engines; "<" is escaped so product text can't close the tag.
         dangerouslySetInnerHTML={{
-          __html: JSON.stringify({
-            "@context": "https://schema.org",
-            "@type": "FAQPage",
-            mainEntity: faq.map((f) => ({
-              "@type": "Question",
-              name: f.question,
-              acceptedAnswer: { "@type": "Answer", text: f.answer },
-            })),
-          }).replace(/</g, "\\u003c"),
+          __html: jsonLd([
+            {
+              "@context": "https://schema.org",
+              "@type": "SoftwareApplication",
+              name: product.name,
+              description: product.description || product.tagline,
+              url: absoluteUrl(productPath),
+              applicationCategory: category?.name ? `${category.name}Application` : "BusinessApplication",
+              operatingSystem: product.platforms.length > 0 ? platformList(product.platforms, { short: true }) : undefined,
+              ...(product.logoUrl ? { image: product.logoUrl.startsWith("http") ? product.logoUrl : absoluteUrl(product.logoUrl) } : {}),
+              author: { "@type": "Person", name: product.maker },
+              datePublished: product.launchDate.toISOString().slice(0, 10),
+              ...(product.pricingModel === "free" || product.pricingModel === "freemium"
+                ? { offers: { "@type": "Offer", price: "0", priceCurrency: "USD" } }
+                : {}),
+              ...(rating
+                ? { aggregateRating: { "@type": "AggregateRating", ratingValue: formatRating(rating.average), ratingCount: rating.count, bestRating: 5, worstRating: 1 } }
+                : {}),
+            },
+            {
+              "@context": "https://schema.org",
+              "@type": "BreadcrumbList",
+              itemListElement: [
+                { "@type": "ListItem", position: 1, name: "LemoLaunch", item: absoluteUrl("/") },
+                ...(category
+                  ? [{ "@type": "ListItem", position: 2, name: category.name, item: absoluteUrl(`/categories/${category.slug}`) }]
+                  : []),
+                { "@type": "ListItem", position: category ? 3 : 2, name: product.name, item: absoluteUrl(productPath) },
+              ],
+            },
+          ]),
         }}
       />
 
-      <section className="band">
-        <div className="mx-auto max-w-6xl px-4 pt-8 pb-12 sm:px-8 lg:pb-14">
-          <Link
-            href={upcoming ? "/#upcoming" : dayHref}
-            className="group inline-flex items-center gap-1.5 text-sm font-semibold"
-          >
-            <svg viewBox="0 0 16 16" aria-hidden="true" className="size-4 transition-transform group-hover:-translate-x-0.5">
-              <path d="M10 3.5 5.5 8l4.5 4.5" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-            </svg>
-            <span className="underline decoration-pop decoration-2 underline-offset-4">
-              {upcoming ? "Back to launches" : `Back to ${launchedToday ? "today" : weekday}'s launches`}
-            </span>
-          </Link>
-
-          <div className="mt-8 grid gap-10 lg:grid-cols-[minmax(0,1fr)_21rem] lg:items-end lg:gap-14">
-            <div className="min-w-0">
-              <div className="inline-block -rotate-3 rounded-[24px] border-2 border-on-signal bg-white p-1.5 shadow-[6px_6px_0_0_var(--pop)]">
-                <LogoTile name={product.name} accent={product.accent} src={product.logoUrl} size="lg" />
-              </div>
-              <h1 className="lift-off mt-7 font-display text-[clamp(2.75rem,7vw,5.25rem)] leading-[0.92] font-extrabold tracking-[-0.025em] text-balance break-words">
+      <section className="border-b border-border">
+        <div className="mx-auto max-w-6xl px-4 pt-6 pb-8 sm:px-8 sm:pt-7 lg:pb-10">
+          <nav aria-label="Breadcrumb">
+            <ol className="flex flex-wrap items-center gap-1.5 text-[13px] text-muted-foreground">
+              <li>
+                <Link href={upcoming ? "/" : dayHref} className="hover:text-foreground">
+                  {upcoming || launchedToday ? "Today" : `${weekday}'s launches`}
+                </Link>
+              </li>
+              {category && (
+                <>
+                  <li aria-hidden>
+                    <ChevronRight className="size-3.5" />
+                  </li>
+                  <li>
+                    <Link href={`/categories/${category.slug}`} className="hover:text-foreground">
+                      {category.name}
+                    </Link>
+                  </li>
+                </>
+              )}
+              <li aria-hidden>
+                <ChevronRight className="size-3.5" />
+              </li>
+              <li aria-current="page" className="truncate font-medium text-foreground">
                 {product.name}
-              </h1>
-              <p className="mt-4 max-w-2xl text-xl leading-snug opacity-85 sm:text-2xl">{product.tagline}</p>
-              <div className="mt-6 flex flex-wrap items-center gap-2">
-                <span className="inline-flex items-center gap-2 rounded-full border-2 border-on-signal bg-white px-3 py-1 text-sm font-semibold">
-                  <span className="size-2 rounded-full bg-pop shadow-[0_0_0_3px_color-mix(in_oklab,var(--pop)_25%,white)]" />
-                  {status}
-                </span>
-                {product.topics.map((t) => (
-                  <Link key={t.slug} href={`/categories/${t.slug}`} className={`${bandChip} transition-colors hover:border-on-signal hover:bg-white`}>
-                    {t.name}
-                  </Link>
-                ))}
-                {pricing && <span className={bandChip}>{pricing}</span>}
-                {product.platforms.length > 0 && <span className={bandChip}>{platformList(product.platforms, { short: true })}</span>}
-              </div>
-              <p className="mt-5 flex flex-wrap items-center gap-x-5 gap-y-2 text-[15px]">
-                <span className="inline-flex items-center gap-1.5">
-                  by <span className="font-bold">{product.maker}</span>
-                  {product.verified && <VerifiedBadge className="size-4" />}
-                </span>
-                {!upcoming && (
-                  <span className="inline-flex items-center gap-1.5 tabular-nums">
-                    <svg viewBox="0 0 12 10" width="10" height="9" aria-hidden="true"><path d="M6 0 L12 10 H0 Z" fill="currentColor" /></svg>
-                    {product.voteCount.toLocaleString("en-US")} {product.voteCount === 1 ? "upvote" : "upvotes"}
+              </li>
+            </ol>
+          </nav>
+
+          <div className="mt-6 grid gap-8 lg:mt-8 lg:grid-cols-[minmax(0,1fr)_20rem] lg:items-end lg:gap-12">
+            <div className="flex min-w-0 flex-col gap-5 sm:flex-row sm:items-center sm:gap-6">
+              <LogoTile name={product.name} accent={product.accent} src={product.logoUrl} size="lg" />
+              <div className="min-w-0">
+                <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
+                  <h1 className="font-display text-[clamp(2.5rem,6vw,3.75rem)] leading-[0.95] font-bold break-words text-balance">
+                    {product.name}
+                  </h1>
+                  {product.featured && <Badge variant="lemon">Featured</Badge>}
+                </div>
+                <p className="mt-3 max-w-2xl text-lg leading-snug text-muted-foreground sm:text-xl">{product.tagline}</p>
+                <div className="mt-4 flex flex-wrap items-center gap-x-2.5 gap-y-1.5 text-[13.5px] text-muted-foreground">
+                  <span className="inline-flex items-center gap-1.5 text-foreground">
+                    <UserAvatar name={product.maker} src={product.makerProfile?.avatarUrl} size="sm" className="size-6 text-[10px]" />
+                    {product.maker}
+                    {product.verified && <VerifiedBadge />}
                   </span>
-                )}
-                <a href="#discussion" className="inline-flex items-center gap-1.5 tabular-nums hover:underline">
-                  <CommentIcon className="size-4" />
-                  {comments.length} {comments.length === 1 ? "comment" : "comments"}
-                </a>
-                {rating && (
-                  <a href="#reviews" className="inline-flex items-center gap-1.5 tabular-nums hover:underline">
-                    <StarIcon className="size-4" />
-                    {formatRating(rating.average)} ({rating.count} {rating.count === 1 ? "review" : "reviews"})
+                  {category && (
+                    <>
+                      <Dot />
+                      <Link href={`/categories/${category.slug}`} className="hover:text-foreground">
+                        {category.name}
+                      </Link>
+                    </>
+                  )}
+                  {pricing && (
+                    <>
+                      <Dot />
+                      <span>{pricing}</span>
+                    </>
+                  )}
+                  {product.platforms.length > 0 && (
+                    <>
+                      <Dot />
+                      <PlatformBadges platforms={product.platforms} />
+                    </>
+                  )}
+                  <Dot />
+                  <a href="#discussion" className="inline-flex items-center gap-1 hover:text-foreground">
+                    <MessageCircle className="size-3.5" aria-hidden />
+                    <span className="num">{comments.length}</span>
+                    <span className="sr-only">{comments.length === 1 ? "comment" : "comments"}</span>
                   </a>
-                )}
-              </p>
+                  {rating && (
+                    <>
+                      <Dot />
+                      <a href="#reviews" className="inline-flex items-center gap-1 hover:text-foreground">
+                        <Star className="size-3.5 fill-lemon-deep text-lemon-deep" aria-hidden />
+                        <span className="num">{formatRating(rating.average)}</span>
+                        <span className="sr-only">out of 5 from {rating.count} {rating.count === 1 ? "review" : "reviews"}</span>
+                      </a>
+                    </>
+                  )}
+                </div>
+              </div>
             </div>
 
-            <div className="lift-off lift-off-late rounded-[22px] border-2 border-on-signal bg-paper p-5 text-ink shadow-[8px_8px_0_0_var(--pop)] sm:p-6">
-              {upcoming ? (
-                <div className="flex items-center gap-4">
-                  <CalendarTile date={product.launchDate} />
-                  <div>
-                    <p className="font-display text-lg leading-tight font-extrabold">
-                      Goes live {daysUntil(product.launchDate, today)}
-                    </p>
-                    <p className="mt-1 text-sm text-mist">
-                      00:00 UTC, <span className="whitespace-nowrap">{weekday.slice(0, 3)} {day}</span>
-                    </p>
+            <div className="grid gap-3">
+              <div className={cn("grid gap-3", !upcoming && "grid-cols-[auto_minmax(0,1fr)]")}>
+                {upcoming ? (
+                  <div className="flex items-center gap-4 rounded-2xl bg-card p-4 shadow-paper ring-1 ring-border">
+                    <CalendarTile date={product.launchDate} />
+                    <div>
+                      <p className="font-display text-lg leading-tight font-bold">Goes live {daysUntil(product.launchDate, today)}</p>
+                      <p className="num mt-1 text-[13px] text-muted-foreground">
+                        00:00 UTC, {weekday.slice(0, 3)} {day}
+                      </p>
+                    </div>
                   </div>
-                </div>
-              ) : (
-                <div className="flex items-center gap-4">
+                ) : (
                   <UpvoteButton
                     productId={product.id}
                     productName={product.name}
                     voteCount={product.voteCount}
                     hasVoted={product.hasVoted}
+                    size="lg"
                   />
-                  <div>
-                    <p className="font-display text-lg leading-tight font-extrabold">Would you use it?</p>
-                    <p className="mt-1 text-sm text-mist">Upvote {product.name} to help it climb the day&apos;s ranking.</p>
+                )}
+                {getLinks.length > 0 ? (
+                  <div className="grid gap-2">
+                    {getLinks.map((link, index) => (
+                      <Button
+                        key={link.href}
+                        asChild
+                        variant={index === 0 ? "default" : "outline"}
+                        size={index === 0 ? "lg" : "default"}
+                        className="w-full min-w-0 justify-start"
+                      >
+                        <a
+                          href={link.href}
+                          data-track-outbound={outboundKind[link.platform]}
+                          data-product-slug={product.slug}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                        >
+                          {link.platform === "web" ? <Globe data-icon="inline-start" /> : <Smartphone data-icon="inline-start" />}
+                          <span className="truncate">{link.label}</span>
+                          <ExternalLink data-icon="inline-end" className="ml-auto opacity-60" />
+                        </a>
+                      </Button>
+                    ))}
                   </div>
-                </div>
-              )}
-              {getLinks.length > 0 && (
-                <div className="mt-5 grid gap-2.5 border-t-2 border-line pt-5">
-                  {getLinks.map((link, index) => (
-                    <a
-                      key={link.href}
-                      href={link.href}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className={`press flex h-14 items-center gap-3 rounded-[14px] border-2 px-4 ${
-                        // The first link is the main call to action; the rest are quieter.
-                        index === 0
-                          ? "border-on-signal bg-signal text-on-signal shadow-[4px_4px_0_0_var(--on-signal)] dark:shadow-[4px_4px_0_0_var(--pop)]"
-                          : "border-ink bg-paper text-ink hover:bg-signal-wash"
-                      }`}
-                    >
-                      {link.platform === "web" ? <GlobeIcon className="size-5" /> : <PhoneIcon className="size-5" />}
-                      <span className="flex-1 text-left leading-tight">
-                        <span className="block text-xs opacity-75">{link.eyebrow}</span>
-                        <span className="block font-bold">{link.label}</span>
-                      </span>
-                      <ExternalIcon className="size-4 opacity-60" />
-                    </a>
-                  ))}
-                </div>
-              )}
-              <div className="mt-5 border-t-2 border-line pt-4">
-                <ShareButtons url={pageUrl} text={`${product.name}: ${product.tagline}, on LemoLaunch`} />
+                ) : (
+                  !upcoming && (
+                    <p className="self-center text-sm text-muted-foreground">
+                      Upvote {product.name} to help it climb the day&apos;s ranking.
+                    </p>
+                  )
+                )}
               </div>
+              <ShareButtons url={pageUrl} text={`${product.name}: ${product.tagline}, on LemoLaunch`} />
             </div>
           </div>
         </div>
-        <div className="hazard" />
       </section>
 
+      <TrackView event="product_viewed" properties={{ product_slug: product.slug, upcoming }} />
       <SectionTabs sections={sections} />
 
-      <div className="mx-auto grid max-w-6xl grid-cols-[minmax(0,1fr)] gap-x-14 gap-y-14 px-4 py-12 sm:px-8 lg:grid-cols-[minmax(0,1fr)_20rem] lg:py-14">
-        <div className="flex min-w-0 flex-col gap-14">
+      <div className="mx-auto grid max-w-6xl grid-cols-[minmax(0,1fr)] gap-x-12 gap-y-12 px-4 py-10 sm:px-8 lg:grid-cols-[minmax(0,1fr)_20rem] lg:py-12">
+        <div className="flex min-w-0 flex-col gap-12">
           {product.description && (
             <section id="overview" aria-labelledby="overview-heading" className={sectionClass}>
-              <h2 id="overview-heading" className={h2Class}>
+              <h2 id="overview-heading" className="sr-only">
                 Overview
               </h2>
-              <p className="mt-4 max-w-[65ch] text-lg leading-relaxed break-words whitespace-pre-line">
-                {product.description}
-              </p>
+              <p className="max-w-[65ch] text-[17px] leading-relaxed break-words whitespace-pre-line">{product.description}</p>
             </section>
           )}
 
           {isMaker && (
-            <section
-              id="badge"
-              aria-labelledby="badge-heading"
-              className="scroll-mt-20 rounded-[22px] border-2 border-dashed border-line p-5 sm:p-7"
-            >
-              <h2 id="badge-heading" className="font-display text-2xl font-extrabold">
+            <section id="badge" aria-labelledby="badge-heading" className="scroll-mt-32 rounded-2xl border border-dashed border-input p-5 sm:p-6">
+              <h2 id="badge-heading" className="font-display text-xl font-bold">
                 Add a badge to your site
               </h2>
-              <p className="mt-2 max-w-[60ch] text-mist">
-                Show visitors you launched on LemoLaunch. The badge links to this page and shows your upvote
-                count. Only you can see this section.
+              <p className="mt-1.5 max-w-[60ch] text-sm text-muted-foreground">
+                Show visitors you launched on LemoLaunch. The badge links to this page and shows your upvote count. Only
+                you can see this section.
               </p>
               <BadgeEmbed origin={origin} slug={product.slug} />
             </section>
           )}
 
-          <section id="facts" aria-labelledby="facts-heading" className={sectionClass}>
-            <h2 id="facts-heading" className={h2Class}>
-              Key facts
-            </h2>
-            <dl className="mt-5 grid grid-cols-2 gap-3 sm:grid-cols-3">
-              {facts
-                .filter(([, value]) => value !== null && value !== undefined && value !== "")
-                .map(([label, value]) => (
-                  <div key={label} className="rounded-2xl border-2 border-line bg-paper px-4 py-3">
-                    <dt className="text-sm text-mist">{label}</dt>
-                    <dd className="mt-0.5 font-bold break-words">{value}</dd>
-                  </div>
-                ))}
-            </dl>
-          </section>
-
           {hasMedia && (
             <section id="screenshots" aria-labelledby="screenshots-heading" className={sectionClass}>
-              <h2 id="screenshots-heading" className={`${h2Class} mb-5`}>
+              <h2 id="screenshots-heading" className={`${h2Class} mb-4`}>
                 Screenshots
               </h2>
               <MediaGallery name={product.name} video={video} images={product.galleryUrls} />
@@ -384,15 +429,15 @@ async function Product({ params }: { params: PageProps<"/products/[slug]">["para
           {product.features.length > 0 && (
             <section id="features" aria-labelledby="features-heading" className={sectionClass}>
               <h2 id="features-heading" className={h2Class}>
-                Features
+                What it does
               </h2>
-              <ul className="mt-5 grid gap-3 sm:grid-cols-2">
+              <ul className="mt-4 grid gap-x-8 gap-y-3.5 sm:grid-cols-2">
                 {product.features.map((feature) => (
-                  <li key={feature} className="flex items-start gap-3 rounded-2xl border-2 border-line bg-paper px-4 py-3">
-                    <span className="mt-0.5 grid size-6 shrink-0 place-items-center rounded-full bg-pop text-on-signal">
-                      <CheckIcon className="size-3.5" />
+                  <li key={feature} className="flex items-start gap-3">
+                    <span className="mt-px grid size-6 shrink-0 place-items-center rounded-lg bg-accent text-accent-foreground">
+                      <Check className="size-3.5" strokeWidth={2.75} aria-hidden />
                     </span>
-                    <span className="font-semibold break-words">{feature}</span>
+                    <span className="font-medium break-words">{feature}</span>
                   </li>
                 ))}
               </ul>
@@ -404,48 +449,57 @@ async function Product({ params }: { params: PageProps<"/products/[slug]">["para
               <h2 id="reviews-heading" className={h2Class}>
                 Reviews
               </h2>
-              <div className="mt-5 flex items-center gap-4">
-                <p className="font-display text-5xl leading-none font-extrabold tabular-nums">
-                  {rating ? formatRating(rating.average) : "–"}
-                </p>
+              <div className="mt-4 grid gap-6 rounded-2xl bg-card p-5 shadow-paper ring-1 ring-border sm:grid-cols-[150px_minmax(0,1fr)] sm:items-center sm:gap-8 sm:p-6">
                 <div>
-                  <Stars rating={rating?.average ?? 0} className="size-5" />
-                  <p className="mt-1 text-sm text-mist">
-                    {rating
-                      ? `${rating.count} ${rating.count === 1 ? "review" : "reviews"}`
-                      : "No reviews yet"}
+                  <p className="font-display text-5xl leading-none font-bold">{rating ? formatRating(rating.average) : "–"}</p>
+                  <div className="mt-2">
+                    <Stars rating={rating?.average ?? 0} />
+                  </div>
+                  <p className="mt-1 text-[13px] text-muted-foreground">
+                    {rating ? `${rating.count} ${rating.count === 1 ? "review" : "reviews"}` : "No reviews yet"}
                   </p>
                 </div>
+                <dl className="grid gap-1.5">
+                  {[5, 4, 3, 2, 1].map((n) => (
+                    <div key={n} className="grid grid-cols-[14px_minmax(0,1fr)_38px] items-center gap-2.5 text-[12.5px]">
+                      <dt className="num text-muted-foreground">
+                        {n}
+                        <span className="sr-only"> stars</span>
+                      </dt>
+                      <dd className="h-2 overflow-hidden rounded-full bg-muted">
+                        <span className="block h-full rounded-full bg-lemon-deep" style={{ width: `${starShare(n)}%` }} />
+                      </dd>
+                      <dd className="num text-right text-muted-foreground">{starShare(n)}%</dd>
+                    </div>
+                  ))}
+                </dl>
               </div>
-              <div className="mt-6">
+              <div className="mt-5">
                 {!user ? (
                   <SignInPrompt href={`/signin?next=${encodeURIComponent(`${productPath}#reviews`)}`} action="Sign in to review">
                     Tried {product.name}? Rate it for other people.
                   </SignInPrompt>
                 ) : isMaker ? (
-                  <p className="text-sm text-mist">You can&apos;t review your own product.</p>
+                  <p className="text-sm text-muted-foreground">You can&apos;t review your own product.</p>
                 ) : (
-                  <ReviewForm
-                    productId={product.id}
-                    existing={ownReview ? { rating: ownReview.rating, body: ownReview.body } : null}
-                  />
+                  <ReviewForm productId={product.id} existing={ownReview ? { rating: ownReview.rating, body: ownReview.body } : null} />
                 )}
               </div>
               {reviews.length > 0 && (
-                <ol className="mt-8 flex flex-col gap-5">
+                <ol className="mt-7 flex flex-col gap-6">
                   {reviews.map((review) => (
                     <li key={review.id} className="flex gap-3">
                       <UserAvatar name={review.user.name} src={review.user.avatarUrl} size="md" />
-                      <div className="min-w-0 flex-1 rounded-[16px] rounded-tl-md border-2 border-line bg-paper px-4 py-3">
+                      <div className="min-w-0 flex-1">
                         <p className="flex flex-wrap items-center gap-x-2 gap-y-1">
-                          <span className="font-bold">{review.user.name}</span>
+                          <span className="font-semibold">{review.user.name}</span>
                           <Stars rating={review.rating} className="size-3.5" />
                           <span className="sr-only">{review.rating} out of 5 stars</span>
-                          <time dateTime={review.createdAt.toISOString()} className="text-sm text-mist">
+                          <time dateTime={review.createdAt.toISOString()} className="text-[12.5px] text-muted-foreground">
                             {timeAgo(review.createdAt)}
                           </time>
                         </p>
-                        {review.body && <p className="mt-1 break-words whitespace-pre-line">{review.body}</p>}
+                        {review.body && <p className="mt-1 max-w-[65ch] break-words whitespace-pre-line">{review.body}</p>}
                       </div>
                     </li>
                   ))}
@@ -459,28 +513,34 @@ async function Product({ params }: { params: PageProps<"/products/[slug]">["para
               <h2 id="compare-heading" className={h2Class}>
                 {product.name} vs {competitor.name}
               </h2>
-              <div className="mt-5 overflow-x-auto rounded-[18px] border-2 border-ink bg-paper">
-                <table className="w-full min-w-[30rem] text-left text-[15px]">
-                  <thead>
-                    <tr className="bg-signal-wash">
-                      <th scope="col" className="w-36 px-4 py-3"><span className="sr-only">Compared</span></th>
-                      <th scope="col" className="px-4 py-3">
-                        <span className="flex items-center gap-2.5">
-                          <LogoTile name={product.name} accent={product.accent} src={product.logoUrl} size="sm" />
+              <div className="mt-4 overflow-hidden rounded-2xl bg-card shadow-paper ring-1 ring-border">
+                <Table className="min-w-[30rem] text-[14px]">
+                  <TableHeader>
+                    <TableRow className="hover:bg-transparent">
+                      <TableHead className="w-32 pl-5">
+                        <span className="sr-only">Compared</span>
+                      </TableHead>
+                      <TableHead>
+                        <span className="flex items-center gap-2.5 font-semibold text-foreground">
+                          <LogoTile name={product.name} accent={product.accent} src={product.logoUrl} size="xs" />
                           {product.name}
                         </span>
-                      </th>
-                      <th scope="col" className="px-4 py-3">
-                        <Link href={`/products/${competitor.slug}`} className="group flex items-center gap-2.5">
-                          <LogoTile name={competitor.name} accent={competitor.accent} src={competitor.logoUrl} size="sm" />
-                          <span className="decoration-pop decoration-2 underline-offset-4 group-hover:underline">{competitor.name}</span>
+                      </TableHead>
+                      <TableHead className="pr-5">
+                        <Link href={`/products/${competitor.slug}`} className="group flex items-center gap-2.5 font-semibold text-foreground">
+                          <LogoTile name={competitor.name} accent={competitor.accent} src={competitor.logoUrl} size="xs" />
+                          <span className="group-hover:underline group-hover:decoration-lemon-deep group-hover:decoration-2">{competitor.name}</span>
                         </Link>
-                      </th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y-2 divide-line">
+                      </TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
                     <CompareRow label="Pricing" a={pricing ?? "Not listed"} b={pricingLabel(competitor.pricingModel) ?? "Not listed"} />
-                    <CompareRow label="Platforms" a={platformList(product.platforms, { short: true }) || "Not listed"} b={platformList(competitor.platforms, { short: true }) || "Not listed"} />
+                    <CompareRow
+                      label="Platforms"
+                      a={platformList(product.platforms, { short: true }) || "Not listed"}
+                      b={platformList(competitor.platforms, { short: true }) || "Not listed"}
+                    />
                     <CompareRow label="Rating" a={ratingText(rating)} b={ratingText(ratings.get(competitor.id) ?? null)} />
                     <CompareRow
                       label="Upvotes"
@@ -488,45 +548,22 @@ async function Product({ params }: { params: PageProps<"/products/[slug]">["para
                       b={competitor.voteCount.toLocaleString("en-US")}
                     />
                     <CompareRow label="Launched" a={upcoming ? `Launches ${day}` : `${day} ${launchYear}`} b={shortDate(competitor.launchDate)} />
-                  </tbody>
-                </table>
+                  </TableBody>
+                </Table>
               </div>
             </section>
           )}
 
-          <section id="faq" aria-labelledby="faq-heading" className={sectionClass}>
-            <h2 id="faq-heading" className={h2Class}>
-              FAQ
-            </h2>
-            <div className="mt-5 grid gap-2.5">
-              {faq.map((item, i) => (
-                <details
-                  key={item.question}
-                  open={i === 0}
-                  className="group rounded-2xl border-2 border-line bg-paper open:border-ink"
-                >
-                  <summary className="flex cursor-pointer list-none items-center justify-between gap-4 px-4 py-3.5 font-bold [&::-webkit-details-marker]:hidden">
-                    {item.question}
-                    <svg viewBox="0 0 16 16" aria-hidden="true" className="size-4 shrink-0 transition-transform group-open:rotate-180">
-                      <path d="m4 6 4 4 4-4" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-                    </svg>
-                  </summary>
-                  <p className="px-4 pb-4 text-mist">{item.answer}</p>
-                </details>
-              ))}
-            </div>
-          </section>
-
           <section id="discussion" aria-labelledby="discussion-heading" className={sectionClass}>
             {/* Older links and sign-in redirects point at #comments. */}
-            <span id="comments" className="block scroll-mt-20" />
-            <h2 id="discussion-heading" className={`${h2Class} flex items-center gap-2.5`}>
+            <span id="comments" className="block scroll-mt-32" />
+            <h2 id="discussion-heading" className={`${h2Class} flex items-baseline gap-2`}>
               Discussion
-              <span className="rounded-lg bg-signal-wash px-2 py-0.5 text-lg tabular-nums">{comments.length}</span>
+              <span className="num text-base font-normal text-muted-foreground">{comments.length}</span>
             </h2>
-            <div className="mt-6">
+            <div className="mt-4">
               {user ? (
-                <CommentForm productId={product.id} userName={user.name} />
+                <CommentForm productId={product.id} userName={user.name} makerFirstName={makerFirstName} />
               ) : (
                 <SignInPrompt href={`/signin?next=${encodeURIComponent(`${productPath}#discussion`)}`} action="Sign in to comment">
                   Ask {makerFirstName} a question or share what you think.
@@ -534,33 +571,31 @@ async function Product({ params }: { params: PageProps<"/products/[slug]">["para
               )}
             </div>
             {comments.length > 0 ? (
-              <ol className="mt-8 flex flex-col gap-5">
+              <ol className="mt-7 flex flex-col gap-6">
                 {comments.map((comment) => (
                   <li key={comment.id} className="flex gap-3">
                     <UserAvatar name={comment.user.name} src={comment.user.avatarUrl} size="md" />
-                    <div className="min-w-0 flex-1 rounded-[16px] rounded-tl-md border-2 border-line bg-paper px-4 py-3">
-                      <p className="flex flex-wrap items-baseline gap-x-2">
-                        <span className="font-bold">{comment.user.name}</span>
-                        {comment.user.id === product.makerId && (
-                          <span className="rounded-md bg-pop px-1.5 py-px text-xs font-bold text-on-signal">Maker</span>
-                        )}
-                        <time dateTime={comment.createdAt.toISOString()} className="text-sm text-mist">
+                    <div className="min-w-0 flex-1">
+                      <p className="flex flex-wrap items-center gap-x-2 gap-y-1">
+                        <span className="font-semibold">{comment.user.name}</span>
+                        {comment.user.id === product.makerId && <Badge variant="lemon">Maker</Badge>}
+                        <time dateTime={comment.createdAt.toISOString()} className="text-[12.5px] text-muted-foreground">
                           {timeAgo(comment.createdAt)}
                         </time>
                       </p>
-                      <p className="mt-1 break-words whitespace-pre-line">{comment.body}</p>
+                      <p className="mt-1 max-w-[65ch] break-words whitespace-pre-line">{comment.body}</p>
                     </div>
                   </li>
                 ))}
               </ol>
             ) : (
-              <div className="mt-6 flex items-center gap-4 rounded-[18px] border-2 border-dashed border-line px-5 py-6">
-                <span className="grid size-11 shrink-0 place-items-center rounded-full bg-pop-wash text-ink">
-                  <CommentIcon className="size-5" />
+              <div className="mt-6 flex items-center gap-4 rounded-2xl border border-dashed border-input px-5 py-5">
+                <span className="grid size-10 shrink-0 place-items-center rounded-full bg-accent text-accent-foreground">
+                  <MessageCircle className="size-[18px]" aria-hidden />
                 </span>
                 <p>
-                  <span className="block font-bold">No comments yet</span>
-                  <span className="text-mist">Start the conversation.</span>
+                  <span className="block font-semibold">No comments yet</span>
+                  <span className="text-muted-foreground">Start the conversation.</span>
                 </p>
               </div>
             )}
@@ -568,34 +603,36 @@ async function Product({ params }: { params: PageProps<"/products/[slug]">["para
 
           {alternatives.length > 0 && category && (
             <section id="alternatives" aria-labelledby="alternatives-heading" className={sectionClass}>
-              <div className="flex items-baseline justify-between gap-3">
+              <div className="flex flex-wrap items-baseline justify-between gap-3">
                 <h2 id="alternatives-heading" className={h2Class}>
                   Alternatives
                 </h2>
-                <Link href={`/categories/${category.slug}`} className="shrink-0 text-sm font-semibold underline decoration-pop decoration-2 underline-offset-4">
-                  All in {category.name}
-                </Link>
+                <Button asChild variant="ghost" size="sm">
+                  <Link href={`/categories/${category.slug}`}>
+                    All in {category.name}
+                    <ChevronRight data-icon="inline-end" />
+                  </Link>
+                </Button>
               </div>
-              <ul className="mt-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+              <ul className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
                 {alternatives.map((launch) => (
                   <li key={launch.id}>
                     <Link
                       href={`/products/${launch.slug}`}
-                      className="group flex h-full flex-col gap-3 rounded-[18px] border-2 border-line bg-paper p-4 transition-[border-color,box-shadow] hover:border-ink hover:shadow-[5px_5px_0_0_var(--pop)]"
+                      className="flex h-full flex-col gap-3 rounded-2xl bg-card p-4 shadow-paper ring-1 ring-border transition-shadow hover:shadow-lift"
                     >
                       <span className="flex items-center gap-3">
-                        <LogoTile name={launch.name} accent={launch.accent} src={launch.logoUrl} size="md" />
+                        <LogoTile name={launch.name} accent={launch.accent} src={launch.logoUrl} size="sm" />
                         <span className="min-w-0">
-                          <span className="block truncate font-bold">{launch.name}</span>
-                          <span className="flex items-center gap-1 text-sm font-semibold text-mist tabular-nums">
-                            <svg viewBox="0 0 12 10" width="9" height="8" aria-hidden="true"><path d="M6 0 L12 10 H0 Z" fill="currentColor" /></svg>
+                          <span className="block truncate font-semibold">{launch.name}</span>
+                          <span className="num flex items-center gap-1 text-[12.5px] text-muted-foreground">
                             {launch.voteCount}
-                            <span className="sr-only">upvotes</span>
-                            {pricingLabel(launch.pricingModel) && <span className="font-normal">· {pricingLabel(launch.pricingModel)}</span>}
+                            <span className="font-sans">upvotes</span>
+                            {pricingLabel(launch.pricingModel) && <span className="font-sans">· {pricingLabel(launch.pricingModel)}</span>}
                           </span>
                         </span>
                       </span>
-                      <span className="line-clamp-2 text-sm text-mist">{launch.tagline}</span>
+                      <span className="line-clamp-2 text-sm text-muted-foreground">{launch.tagline}</span>
                     </Link>
                   </li>
                 ))}
@@ -604,79 +641,61 @@ async function Product({ params }: { params: PageProps<"/products/[slug]">["para
           )}
         </div>
 
-        <aside className="flex flex-col gap-6 lg:sticky lg:top-20 lg:self-start">
-          <section aria-labelledby="info-heading" className="rounded-[20px] border-2 border-ink bg-paper p-5 shadow-[6px_6px_0_0_var(--pop)]">
-            <h2 id="info-heading" className="font-display text-lg font-extrabold">
-              Information
-            </h2>
-            <dl className="mt-2 divide-y-2 divide-line text-[15px]">
-              {pricing && <InfoRow label="Pricing">{pricing}</InfoRow>}
-              {!upcoming && <InfoRow label="Upvotes"><span className="tabular-nums">{product.voteCount.toLocaleString("en-US")}</span></InfoRow>}
-              <InfoRow label="Comments">
-                <a href="#discussion" className={`${linkClass} tabular-nums`}>{comments.length}</a>
-              </InfoRow>
-              <InfoRow label={upcoming ? "Launches" : "Launched"}>
-                {upcoming ? (
-                  `${weekday.slice(0, 3)}, ${day}`
-                ) : (
-                  <Link href={dayHref} className={linkClass}>
-                    {launchedToday ? "Today" : `${weekday.slice(0, 3)}, ${day}`}
-                  </Link>
-                )}
-              </InfoRow>
-              {product.platforms.length > 0 && <InfoRow label="Platforms">{platformList(product.platforms, { short: true })}</InfoRow>}
-              {product.websiteUrl && (
-                <InfoRow label="Website">
-                  <a href={product.websiteUrl} target="_blank" rel="noopener noreferrer" className={`${linkClass} inline-flex items-center gap-1`}>
-                    <span className="max-w-36 truncate">{hostOf(product.websiteUrl)}</span>
-                    <ExternalIcon className="size-3.5 shrink-0" />
-                  </a>
-                </InfoRow>
-              )}
+        <aside className="flex flex-col gap-5 lg:sticky lg:top-32 lg:self-start">
+          <section id="facts" aria-labelledby="facts-heading" className="scroll-mt-32 overflow-hidden rounded-2xl bg-card shadow-paper ring-1 ring-border">
+            <div className="flex items-center gap-2.5 bg-accent px-5 py-3.5 text-accent-foreground">
+              <Ticket className="size-[18px]" aria-hidden />
+              <h2 id="facts-heading" className="font-semibold">
+                Launch ticket
+              </h2>
+              <span className="num ml-auto text-[12.5px]">Edition {edition}</span>
+            </div>
+            <dl className="grid grid-cols-2 gap-x-4 gap-y-3.5 px-5 pt-4 pb-4">
+              {ticketStats.map(([label, value]) => (
+                <div key={label}>
+                  <dt className="text-xs text-muted-foreground">{label}</dt>
+                  <dd className="num mt-0.5 text-[17px] font-medium">{value}</dd>
+                </div>
+              ))}
+            </dl>
+            <div className="mx-5 border-t border-dashed border-input" />
+            <dl className="px-5 pt-1 pb-3 text-sm">
+              {facts
+                .filter(([, value]) => value !== null && value !== undefined && value !== "")
+                .map(([label, value]) => (
+                  <div key={label} className="flex items-center justify-between gap-4 border-b border-border py-2.5 last:border-0">
+                    <dt className="shrink-0 text-muted-foreground">{label}</dt>
+                    <dd className="min-w-0 text-right font-medium break-words">{value}</dd>
+                  </div>
+                ))}
             </dl>
           </section>
 
-          {dayRank && (
-            <section aria-labelledby="ranking-heading" className="rounded-[20px] border-2 border-ink bg-paper p-5">
-              <h2 id="ranking-heading" className="font-display text-lg font-extrabold">
-                Launch ranking
-              </h2>
-              <div className="mt-3 grid grid-cols-2 gap-3">
-                <RankTile rank={dayRank.rank} caption={`of ${dayRank.of} on launch day`} />
-                {categoryRank && category && (
-                  <RankTile rank={categoryRank.rank} caption={`in ${category.name} that week`} />
-                )}
-              </div>
-            </section>
-          )}
-
-          <section aria-labelledby="maker-heading" className="rounded-[20px] border-2 border-ink bg-paper p-5">
+          <section aria-labelledby="maker-heading" className="rounded-2xl bg-card p-5 shadow-paper ring-1 ring-border">
             <h2 id="maker-heading" className="sr-only">
               Maker
             </h2>
             <div className="flex items-center gap-3">
-              <UserAvatar name={product.maker} src={product.makerProfile?.avatarUrl} size="md" />
+              <UserAvatar name={product.maker} src={product.makerProfile?.avatarUrl} size="md" className="size-11" />
               <div className="min-w-0">
-                <p className="flex items-center gap-1.5 font-bold">
+                <p className="flex items-center gap-1.5 font-semibold">
                   <span className="truncate">{product.maker}</span>
-                  {product.verified && <VerifiedBadge className="size-4" />}
+                  {product.verified && <VerifiedBadge />}
                 </p>
-                <p className="truncate text-sm text-mist">{product.makerProfile?.headline || `Maker of ${product.name}`}</p>
+                <p className="line-clamp-2 text-[13px] text-muted-foreground">
+                  {product.makerProfile?.headline || `Maker of ${product.name}`}
+                </p>
               </div>
             </div>
             {makerLinks.length > 0 && (
-              <ul className="mt-4 flex gap-2">
+              <ul className="mt-4 flex gap-1.5">
                 {makerLinks.map(({ label, href, Icon }) => (
                   <li key={label}>
-                    <a
-                      href={href}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      aria-label={`${product.maker} on ${label}`}
-                      className="grid size-9 place-items-center rounded-[10px] border-2 border-line text-ink transition-colors hover:border-ink"
-                    >
-                      <Icon className="size-4" />
-                    </a>
+                    <Button asChild variant="outline" size="icon-sm">
+                      <a href={href} target="_blank" rel="noopener noreferrer" aria-label={`${product.maker} on ${label}`}>
+                        <Icon className="size-3.5" />
+                      </a>
+                    </Button>
                   </li>
                 ))}
               </ul>
@@ -689,6 +708,7 @@ async function Product({ params }: { params: PageProps<"/products/[slug]">["para
                   following={following}
                   signInHref={user ? null : `/signin?next=${encodeURIComponent(productPath)}`}
                 />
+                <p className="mt-2 text-center text-xs text-muted-foreground">Get a notification when they launch again</p>
               </div>
             )}
           </section>
@@ -700,50 +720,32 @@ async function Product({ params }: { params: PageProps<"/products/[slug]">["para
   );
 }
 
-const bandChip = "rounded-full border-2 border-on-signal/25 bg-white/50 px-3 py-1 text-sm font-semibold";
-const linkClass = "underline decoration-line decoration-2 underline-offset-4 hover:decoration-pop";
+const linkClass = "underline decoration-input decoration-[1.5px] underline-offset-4 hover:decoration-lemon-deep";
 
-function InfoRow({ label, children }: { label: string; children: React.ReactNode }) {
-  return (
-    <div className="flex items-center justify-between gap-4 py-3">
-      <dt className="shrink-0 text-mist">{label}</dt>
-      <dd className="min-w-0 text-right font-semibold">{children}</dd>
-    </div>
-  );
-}
-
-function RankTile({ rank, caption }: { rank: number; caption: string }) {
-  return (
-    <div className="rounded-2xl bg-signal-wash px-3 py-3">
-      <p className="font-display text-3xl leading-none font-extrabold tabular-nums">#{rank}</p>
-      <p className="mt-1.5 text-xs leading-snug font-semibold text-mist">{caption}</p>
-    </div>
-  );
+function Dot() {
+  return <span aria-hidden className="size-[3px] rounded-full bg-input" />;
 }
 
 function CompareRow({ label, a, b }: { label: string; a: string; b: string }) {
   return (
-    <tr>
-      <th scope="row" className="px-4 py-3 font-semibold text-mist">
+    <TableRow className="hover:bg-transparent">
+      <TableHead scope="row" className="pl-5 font-normal text-muted-foreground">
         {label}
-      </th>
-      <td className="px-4 py-3 font-semibold">{a}</td>
-      <td className="px-4 py-3 font-semibold">{b}</td>
-    </tr>
+      </TableHead>
+      <TableCell className="font-medium">{a}</TableCell>
+      <TableCell className="pr-5 font-medium">{b}</TableCell>
+    </TableRow>
   );
 }
 
 function SignInPrompt({ href, action, children }: { href: string; action: string; children: React.ReactNode }) {
   return (
-    <p className="flex flex-wrap items-center gap-x-3 gap-y-3 rounded-[18px] border-2 border-ink bg-paper px-5 py-4">
-      <span className="min-w-0 flex-1 basis-60">{children}</span>
-      <Link
-        href={href}
-        className="press inline-flex h-10 items-center rounded-xl border-2 border-on-signal bg-signal px-4 text-sm font-bold text-on-signal shadow-[3px_3px_0_0_var(--pop)]"
-      >
-        {action}
-      </Link>
-    </p>
+    <div className="flex flex-wrap items-center gap-x-4 gap-y-3 rounded-2xl bg-card px-5 py-4 shadow-paper ring-1 ring-border">
+      <p className="min-w-0 flex-1 basis-60">{children}</p>
+      <Button asChild>
+        <Link href={href}>{action}</Link>
+      </Button>
+    </div>
   );
 }
 
@@ -752,13 +754,10 @@ function CalendarTile({ date }: { date: Date }) {
   const month = date.toLocaleDateString("en-GB", { month: "short", timeZone: "UTC" });
   const weekday = date.toLocaleDateString("en-GB", { weekday: "short", timeZone: "UTC" });
   return (
-    <span
-      aria-hidden="true"
-      className="flex w-[60px] shrink-0 flex-col overflow-hidden rounded-[14px] border-2 border-ink bg-paper text-center shadow-[3px_3px_0_0_var(--ink)]"
-    >
-      <span className="bg-pop py-0.5 text-[11px] font-bold tracking-wide text-on-signal uppercase">{month}</span>
-      <span className="pt-1.5 font-display text-2xl leading-none font-extrabold tabular-nums">{date.getUTCDate()}</span>
-      <span className="pb-1.5 text-[11px] font-semibold text-mist">{weekday}</span>
+    <span aria-hidden="true" className="flex w-14 shrink-0 flex-col overflow-hidden rounded-xl bg-card text-center ring-1 ring-border">
+      <span className="bg-lemon py-0.5 text-[11px] font-semibold text-on-lemon uppercase">{month}</span>
+      <span className="num pt-1 text-2xl leading-none font-medium">{date.getUTCDate()}</span>
+      <span className="pb-1.5 text-[11px] text-muted-foreground">{weekday}</span>
     </span>
   );
 }
@@ -787,19 +786,25 @@ function daysUntil(date: Date, today: Date): string {
 function ProductSkeleton() {
   return (
     <div aria-busy="true" aria-label="Loading product">
-      <div className="band">
-        <div className="mx-auto grid max-w-6xl gap-10 px-4 pt-20 pb-12 motion-safe:animate-pulse sm:px-8 lg:grid-cols-[minmax(0,1fr)_21rem] lg:items-end lg:pb-14">
-          <div>
-            <div className="size-24 -rotate-3 rounded-[24px] bg-on-signal/10 sm:size-28" />
-            <div className="mt-7 h-16 w-2/3 max-w-md rounded-xl bg-on-signal/10" />
-            <div className="mt-4 h-7 w-1/2 max-w-sm rounded bg-on-signal/10" />
+      <div className="border-b border-border">
+        <div className="mx-auto grid max-w-6xl gap-8 px-4 pt-14 pb-10 motion-safe:animate-pulse sm:px-8 lg:grid-cols-[minmax(0,1fr)_20rem] lg:items-end">
+          <div className="flex items-center gap-6">
+            <div className="size-20 shrink-0 rounded-[20px] bg-muted sm:size-26" />
+            <div className="flex-1">
+              <div className="h-14 w-2/3 max-w-md rounded-xl bg-muted" />
+              <div className="mt-4 h-6 w-1/2 max-w-sm rounded bg-muted" />
+            </div>
           </div>
-          <div className="h-56 rounded-[22px] bg-on-signal/10" />
+          <div className="h-36 rounded-2xl bg-muted" />
         </div>
-        <div className="hazard" />
       </div>
     </div>
   );
+}
+
+function clip(text: string, max: number): string {
+  const flat = text.replace(/\s+/g, " ").replace(/\.\./g, ".");
+  return flat.length <= max ? flat : `${flat.slice(0, max - 1).replace(/\s+\S*$/, "")}…`;
 }
 
 /** "5 min ago" style label. Only called while rendering this request-time page. */

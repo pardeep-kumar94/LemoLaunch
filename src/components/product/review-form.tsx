@@ -1,8 +1,12 @@
 "use client";
 
-import { useActionState, useState } from "react";
+import { useActionState, useEffect, useState } from "react";
 import { saveReview, type ReviewState } from "@/app/product-actions";
 import { StarIcon } from "@/components/icons";
+import { Button } from "@/components/ui/button";
+import { Textarea } from "@/components/ui/textarea";
+import { track } from "@/lib/analytics";
+import { cn } from "@/lib/utils";
 
 const ratingWords = ["", "Poor", "Fair", "Good", "Great", "Excellent"];
 
@@ -21,10 +25,16 @@ export function ReviewForm({
   const [hover, setHover] = useState(0);
   const shown = hover || rating;
 
+  useEffect(() => {
+    if (state.status === "saved") track("review_posted", { product_id: productId, rating, updated: Boolean(existing) });
+    // Only when a save result arrives, not on every star hover.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [state]);
+
   return (
-    <form action={formAction} className="grid gap-3 rounded-[18px] border-2 border-ink bg-paper p-5">
+    <form action={formAction} className="grid gap-3 rounded-2xl bg-card p-5 shadow-paper ring-1 ring-border">
       <fieldset>
-        <legend className="font-bold">{existing ? "Update your review" : "Rate this product"}</legend>
+        <legend className="font-semibold">{existing ? "Update your review" : "Rate this product"}</legend>
         <div className="mt-2 flex items-center gap-3" onMouseLeave={() => setHover(0)}>
           <div className="flex gap-1">
             {[1, 2, 3, 4, 5].map((n) => (
@@ -43,14 +53,15 @@ export function ReviewForm({
                 </span>
                 <StarIcon
                   filled={n <= shown}
-                  className={`size-8 rounded-md transition-colors peer-focus-visible:outline-2 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-ink ${
-                    n <= shown ? "text-pop" : "text-line"
-                  }`}
+                  className={cn(
+                    "size-7 rounded-md transition-colors peer-focus-visible:outline-2 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-ring",
+                    n <= shown ? "text-lemon-deep" : "text-input",
+                  )}
                 />
               </label>
             ))}
           </div>
-          <span className="text-sm font-semibold text-mist" aria-hidden="true">
+          <span className="text-sm text-muted-foreground" aria-hidden="true">
             {ratingWords[shown]}
           </span>
         </div>
@@ -58,26 +69,22 @@ export function ReviewForm({
       <label htmlFor="review-body" className="sr-only">
         Your review (optional)
       </label>
-      <textarea
+      <Textarea
         id="review-body"
         name="body"
         rows={3}
         maxLength={1000}
         defaultValue={existing?.body ?? ""}
         placeholder="What did you like, and what could be better? (optional)"
-        className="w-full resize-y rounded-xl border-2 border-line bg-paper px-3.5 py-3 text-ink placeholder:text-mist focus:border-ink focus:outline-none"
+        className="min-h-20 resize-y"
       />
-      {state.status === "error" && <p className="text-sm font-semibold text-danger">{state.error}</p>}
-      <div className="flex items-center gap-3">
-        <button
-          type="submit"
-          disabled={pending}
-          className="press h-11 rounded-xl border-2 border-on-signal bg-signal px-5 font-bold text-on-signal shadow-[3px_3px_0_0_var(--pop)] disabled:opacity-60"
-        >
+      {state.status === "error" && <p className="text-sm font-medium text-destructive">{state.error}</p>}
+      <div className="flex flex-wrap items-center gap-3">
+        <Button type="submit" disabled={pending}>
           {pending ? "Saving…" : existing ? "Update review" : "Post review"}
-        </button>
+        </Button>
         {state.status === "saved" && (
-          <p role="status" className="text-sm font-semibold text-mist">
+          <p role="status" className="text-sm text-muted-foreground">
             Thanks, your review is saved.
           </p>
         )}

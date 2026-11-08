@@ -1,215 +1,220 @@
 @import "tailwindcss";
+@import "tw-animate-css";
+@import "shadcn/tailwind.css";
 
 /*
-  Lemonade: lemon yellow surfaces, coral accents, cocoa text.
-  Yellow and coral are surfaces, marks and shadows, never text on a light background;
-  text on either is always cocoa.
+  The Daily Edition. LemoLaunch reads like a morning paper: warm ink on paper, with lemon
+  reserved for things that are alive (your upvote, the Fast Track timer, filled launch seats).
+  Every value is a shadcn token, so the ui/ components pick it up directly.
 */
+
+/* Dark mode follows the visitor's system setting. */
+@custom-variant dark (@media (prefers-color-scheme: dark));
+
 :root {
-  --signal: #ffd60a;
-  --on-signal: #3b1d0e;
-  --pop: #ff7a45;
-  --ink: #3b1d0e;
-  --concrete: #fff8ef;
-  --paper: #ffffff;
-  --mist: #7a6152;
-  --line: #f0e2d4;
-  --danger: #b42318;
-  --silver: #e6dfd8;
-  --bronze: #f4c39d;
-  --signal-wash: color-mix(in oklab, var(--signal) 22%, var(--paper));
-  --pop-wash: color-mix(in oklab, var(--pop) 14%, var(--paper));
+  --radius: 0.75rem;
+
+  --background: oklch(0.985 0.006 90);
+  --foreground: oklch(0.24 0.022 62);
+  --card: oklch(1 0 0);
+  --card-foreground: var(--foreground);
+  --popover: oklch(1 0 0);
+  --popover-foreground: var(--foreground);
+  --primary: oklch(0.25 0.022 62);
+  --primary-foreground: oklch(0.985 0.006 90);
+  --secondary: oklch(0.955 0.012 88);
+  --secondary-foreground: var(--foreground);
+  --muted: oklch(0.955 0.012 88);
+  --muted-foreground: oklch(0.5 0.022 66);
+  --accent: oklch(0.962 0.06 100);
+  --accent-foreground: oklch(0.36 0.06 75);
+  --destructive: oklch(0.56 0.2 27);
+  --border: oklch(0.905 0.012 85);
+  --input: oklch(0.88 0.014 85);
+  --ring: oklch(0.8 0.15 95);
+
+  /* LemoLaunch's own colors. Lemon marks what's alive; leaf marks "live" and verified. */
+  --lemon: oklch(0.885 0.165 98);
+  --lemon-deep: oklch(0.78 0.16 92);
+  --lemon-soft: color-mix(in oklab, var(--lemon) 62%, var(--card));
+  --leaf: oklch(0.56 0.13 145);
+  --on-lemon: oklch(0.24 0.022 62);
+
+  --chart-1: var(--lemon-deep);
+  --chart-2: var(--leaf);
+  --chart-3: oklch(0.6 0.1 240);
+  --chart-4: oklch(0.65 0.15 40);
+  --chart-5: oklch(0.55 0.12 300);
+  --sidebar: var(--card);
+  --sidebar-foreground: var(--foreground);
+  --sidebar-primary: var(--primary);
+  --sidebar-primary-foreground: var(--primary-foreground);
+  --sidebar-accent: var(--accent);
+  --sidebar-accent-foreground: var(--accent-foreground);
+  --sidebar-border: var(--border);
+  --sidebar-ring: var(--ring);
 }
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --ink: #fbf1e8;
-    --concrete: #1c120c;
-    --paper: #2a1c14;
-    --mist: #c9b3a2;
-    --line: #47342a;
-    --danger: #ff8a7a;
-    --signal-wash: color-mix(in oklab, var(--signal) 9%, var(--paper));
-    --pop-wash: color-mix(in oklab, var(--pop) 10%, var(--paper));
+    --background: oklch(0.17 0.012 65);
+    --foreground: oklch(0.95 0.01 85);
+    --card: oklch(0.21 0.014 65);
+    --popover: oklch(0.23 0.014 65);
+    --primary: oklch(0.95 0.01 85);
+    --primary-foreground: oklch(0.2 0.014 65);
+    --secondary: oklch(0.27 0.014 65);
+    --muted: oklch(0.26 0.014 65);
+    --muted-foreground: oklch(0.73 0.02 75);
+    --accent: oklch(0.3 0.05 95);
+    --accent-foreground: oklch(0.93 0.08 98);
+    --destructive: oklch(0.7 0.17 25);
+    --border: oklch(1 0 0 / 10%);
+    --input: oklch(1 0 0 / 16%);
+    --ring: oklch(0.8 0.14 95);
+    --lemon: oklch(0.86 0.16 96);
+    --lemon-deep: oklch(0.78 0.15 92);
+    --lemon-soft: color-mix(in oklab, var(--lemon) 45%, var(--card));
+    --leaf: oklch(0.72 0.14 145);
   }
 }
 
 @theme inline {
-  --color-signal: var(--signal);
-  --color-on-signal: var(--on-signal);
-  --color-pop: var(--pop);
-  --color-ink: var(--ink);
-  --color-concrete: var(--concrete);
-  --color-paper: var(--paper);
-  --color-mist: var(--mist);
-  --color-line: var(--line);
-  --color-danger: var(--danger);
-  --color-silver: var(--silver);
-  --color-bronze: var(--bronze);
-  --color-signal-wash: var(--signal-wash);
-  --color-pop-wash: var(--pop-wash);
-  --font-sans: var(--font-lexend);
-  --font-display: var(--font-lexend);
+  --font-sans: var(--font-geist), ui-sans-serif, system-ui, sans-serif;
+  --font-mono: var(--font-geist-mono), ui-monospace, monospace;
+  --font-display: var(--font-bricolage), var(--font-geist), sans-serif;
+  --font-heading: var(--font-bricolage), var(--font-geist), sans-serif;
+
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-lemon: var(--lemon);
+  --color-lemon-deep: var(--lemon-deep);
+  --color-lemon-soft: var(--lemon-soft);
+  --color-leaf: var(--leaf);
+  --color-on-lemon: var(--on-lemon);
+  --color-chart-1: var(--chart-1);
+  --color-chart-2: var(--chart-2);
+  --color-chart-3: var(--chart-3);
+  --color-chart-4: var(--chart-4);
+  --color-chart-5: var(--chart-5);
+  --color-sidebar: var(--sidebar);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-ring: var(--sidebar-ring);
+
+  --radius-sm: calc(var(--radius) * 0.6);
+  --radius-md: calc(var(--radius) * 0.8);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) * 1.4);
+  --radius-2xl: calc(var(--radius) * 1.8);
+  --radius-3xl: calc(var(--radius) * 2.2);
+  --radius-4xl: calc(var(--radius) * 2.6);
+
+  /* Soft paper shadow for cards: a hairline plus a long, faint drop. */
+  --shadow-paper: 0 1px 2px rgb(40 30 10 / 0.04), 0 10px 30px -22px rgb(60 40 10 / 0.28);
+  --shadow-lift: 0 1px 2px rgb(40 30 10 / 0.06), 0 18px 40px -24px rgb(60 40 10 / 0.4);
 }
 
-body {
-  background: var(--concrete);
-  color: var(--ink);
-  font-family: var(--font-lexend), system-ui, sans-serif;
-}
-
-:focus-visible {
-  outline: 2px solid var(--ink);
-  outline-offset: 3px;
-  border-radius: 6px;
-}
-
-/* The yellow band at the top of every page. Stays yellow in dark mode. */
-.band {
-  background: var(--signal);
-  color: var(--on-signal);
-}
-
-.band :focus-visible {
-  outline-color: var(--on-signal);
-}
-
-/* Pad-edge hazard marking that closes the band. */
-.hazard {
-  height: 12px;
-  background: repeating-linear-gradient(
-    -45deg,
-    var(--on-signal) 0 12px,
-    var(--signal) 12px 24px
-  );
-}
-
-/* Buttons that press flat into their hard shadow. */
-.press {
-  transition: transform 120ms, box-shadow 120ms;
-}
-
-.press:active {
-  transform: translate(4px, 4px);
-  box-shadow: none;
-}
-
-/*
-  Podium medals. Each card is a light metal plate (gold, silver, bronze) with a
-  matching hard shadow, and keeps light-scheme colors even in dark mode.
-*/
-.medal-card {
-  --ink: #3b1d0e;
-  --paper: #ffffff;
-  --mist: #6f5a4c;
-  --line: #eadccd;
-  --pop-wash: #ffe9de;
-  color: var(--ink);
-  border-width: 2px;
-  border-style: solid;
-}
-
-.medal-gold {
-  border-color: #8a6100;
-  background:
-    radial-gradient(120% 80% at 0% 0%, rgb(255 255 255 / 0.85), transparent 55%),
-    linear-gradient(135deg, #fff7d6 0%, #ffe590 38%, #fff3c4 62%, #ffd24d 100%);
-  box-shadow: 8px 8px 0 0 #c98f00;
-}
-
-.medal-silver {
-  border-color: #5f6673;
-  background:
-    radial-gradient(120% 80% at 0% 0%, rgb(255 255 255 / 0.9), transparent 55%),
-    linear-gradient(135deg, #fbfcfe 0%, #e4e7ee 40%, #f7f8fb 62%, #cfd4dd 100%);
-  box-shadow: 6px 6px 0 0 #8e95a3;
-}
-
-.medal-bronze {
-  border-color: #8a4a20;
-  background:
-    radial-gradient(120% 80% at 0% 0%, rgb(255 255 255 / 0.8), transparent 55%),
-    linear-gradient(135deg, #fff3ea 0%, #f6d2b5 40%, #fdeadc 62%, #e7a77a 100%);
-  box-shadow: 6px 6px 0 0 #b0653a;
-}
-
-/* The medal badge: a polished chip with a highlight along its top edge. */
-.medal-chip {
-  border-width: 2px;
-  border-style: solid;
-  color: #3b1d0e;
-  box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.75), 0 2px 0 rgb(0 0 0 / 0.12);
-}
-
-.medal-chip-gold {
-  border-color: #8a6100;
-  background: linear-gradient(180deg, #fff1a8 0%, #ffd23f 45%, #e8a900 100%);
-}
-
-.medal-chip-silver {
-  border-color: #5f6673;
-  background: linear-gradient(180deg, #ffffff 0%, #d9dde5 50%, #aab1be 100%);
-}
-
-.medal-chip-bronze {
-  border-color: #8a4a20;
-  background: linear-gradient(180deg, #ffe0c7 0%, #e9a774 50%, #c47440 100%);
-}
-
-/* One light sweep across the gold card after the page loads. */
-.medal-shine {
-  position: absolute;
-  inset: 0;
-  overflow: hidden;
-  border-radius: inherit;
-  pointer-events: none;
-}
-
-.medal-shine::after {
-  content: "";
-  position: absolute;
-  inset: -20% auto -20% -40%;
-  width: 35%;
-  background: linear-gradient(100deg, transparent, rgb(255 255 255 / 0.75), transparent);
-  transform: skewX(-18deg) translateX(-120%);
-  animation: medal-sweep 1400ms 600ms cubic-bezier(0.4, 0, 0.2, 1) both;
-}
-
-@keyframes medal-sweep {
-  to {
-    transform: skewX(-18deg) translateX(520%);
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  html {
+    @apply font-sans;
+    scrollbar-color: color-mix(in oklab, var(--foreground) 22%, transparent) transparent;
+  }
+  body {
+    @apply bg-background text-foreground antialiased;
+  }
+  ::selection {
+    background: var(--lemon);
+    color: var(--on-lemon);
+  }
+  :focus-visible {
+    outline: 2px solid var(--ring);
+    outline-offset: 2px;
+  }
+  button:not(:disabled),
+  [role="button"]:not(:disabled) {
+    cursor: pointer;
+  }
+  input,
+  textarea {
+    caret-color: var(--lemon-deep);
+  }
+  a {
+    text-underline-offset: 4px;
   }
 }
 
-@media (prefers-reduced-motion: reduce) {
-  .medal-shine::after {
-    animation: none;
-    display: none;
-  }
+@utility font-display {
+  font-family: var(--font-display);
+  letter-spacing: -0.03em;
 }
 
-/* The one orchestrated moment: the day's headline settles in on load. */
-@keyframes lift-off {
+/* Numbers that are measurements: counts, times, ranks. */
+@utility num {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+}
+
+/* The one authored moment: today's launch seats settle in when the page loads. */
+@keyframes seat-in {
   from {
+    transform: scale(0.4);
     opacity: 0;
-    transform: translateY(0.35em);
+    filter: blur(2px);
   }
   to {
-    opacity: 1;
     transform: none;
+    opacity: 1;
+    filter: none;
   }
 }
 
-.lift-off {
-  animation: lift-off 700ms cubic-bezier(0.2, 0.7, 0.2, 1) both;
+.seat-in {
+  animation: seat-in 700ms cubic-bezier(0.16, 1, 0.3, 1) both;
+  animation-delay: calc(var(--seat, 0) * 9ms);
 }
 
-.lift-off-late {
-  animation-delay: 140ms;
+/* The "live now" dot breathing. */
+@keyframes live-pulse {
+  0%,
+  100% {
+    box-shadow: 0 0 0 3px color-mix(in oklab, var(--leaf) 22%, transparent);
+  }
+  50% {
+    box-shadow: 0 0 0 6px color-mix(in oklab, var(--leaf) 6%, transparent);
+  }
+}
+
+.live-dot {
+  animation: live-pulse 2.4s ease-out infinite;
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .lift-off {
+  .seat-in,
+  .live-dot {
     animation: none;
   }
 }

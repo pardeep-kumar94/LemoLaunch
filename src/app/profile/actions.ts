@@ -2,7 +2,7 @@
 
 import { refresh } from "next/cache";
 import { Prisma } from "@prisma/client";
-import { currentSessionId, getCurrentUser, hashPassword, verifyPassword } from "@/lib/auth";
+import { currentSessionId, getCurrentUser, hashPassword, hasPassword, verifyPassword } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { startOfUtcDay } from "@/lib/dates";
 import { refundSubmission } from "@/lib/payments";
@@ -98,8 +98,10 @@ export async function changeEmail(_previous: FormState, formData: FormData): Pro
     return { status: "error", fieldErrors: { email: "That's already your email address." } };
   }
 
+  // Accounts without a password (signed up with Google) are confirmed by their session alone.
   const account = await db.user.findUnique({ where: { id: user.id }, select: { passwordHash: true } });
-  if (!account || typeof password !== "string" || !(await verifyPassword(password, account.passwordHash))) {
+  if (!account) return signedOut;
+  if (hasPassword(account.passwordHash) && (typeof password !== "string" || !(await verifyPassword(password, account.passwordHash)))) {
     return { status: "error", fieldErrors: { currentPassword: "That password isn't right." } };
   }
 
@@ -131,8 +133,11 @@ export async function changePassword(_previous: FormState, formData: FormData): 
     return { status: "error", fieldErrors: { confirmPassword: "The two passwords don't match." } };
   }
 
+  // Accounts without a password (signed up with Google) can set one without a current password.
   const account = await db.user.findUnique({ where: { id: user.id }, select: { passwordHash: true } });
-  if (!account || typeof current !== "string" || !(await verifyPassword(current, account.passwordHash))) {
+  if (!account) return signedOut;
+  const hadPassword = hasPassword(account.passwordHash);
+  if (hadPassword && (typeof current !== "string" || !(await verifyPassword(current, account.passwordHash)))) {
     return { status: "error", fieldErrors: { currentPassword: "That password isn't right." } };
   }
 
@@ -141,7 +146,13 @@ export async function changePassword(_previous: FormState, formData: FormData): 
     db.user.update({ where: { id: user.id }, data: { passwordHash: await hashPassword(next) } }),
     db.session.deleteMany({ where: { userId: user.id, NOT: { id: keep ?? "" } } }),
   ]);
-  return { status: "saved", message: "Password changed. You've been signed out everywhere else." };
+  refresh();
+  return {
+    status: "saved",
+    message: hadPassword
+      ? "Password changed. You've been signed out everywhere else."
+      : "Password set. You can now also sign in with your email and password.",
+  };
 }
 
 /** Deletes one of the signed-in user's unpaid Launch Pass submissions. */

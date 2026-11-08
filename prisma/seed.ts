@@ -58,19 +58,14 @@ const platformsFor: Record<string, ("web" | "ios" | "android")[]> = {
   orbitdesk: ["web", "ios"],
 };
 
-// A few sample store and website links (example.com placeholders) so product pages show their buttons.
-const sampleLinks: Record<string, { websiteUrl?: string; appStoreUrl?: string; playStoreUrl?: string }> = {
-  driftwood: {
-    websiteUrl: "https://example.com/driftwood",
-    appStoreUrl: "https://apps.example.com/app/driftwood/id1000000001",
-    playStoreUrl: "https://play.example.com/store/apps/details?id=com.example.driftwood",
-  },
-  murmur: {
-    appStoreUrl: "https://apps.example.com/app/murmur/id1000000002",
-    playStoreUrl: "https://play.example.com/store/apps/details?id=com.example.murmur",
-  },
-  patchbay: { websiteUrl: "https://example.com/patchbay" },
-};
+// Placeholder website and store links (example.com) for each platform a sample product runs on.
+function sampleLinks(slug: string, platforms: string[]) {
+  return {
+    websiteUrl: platforms.includes("web") ? `https://example.com/${slug}` : null,
+    appStoreUrl: platforms.includes("ios") ? `https://apps.example.com/app/${slug}` : null,
+    playStoreUrl: platforms.includes("android") ? `https://play.example.com/store/apps/details?id=com.example.${slug.replace(/-/g, "")}` : null,
+  };
+}
 
 // Products with sample screenshots in public/samples.
 const withScreenshots = new Set(["driftwood", "patchbay", "murmur"]);
@@ -292,7 +287,7 @@ async function main() {
           accent: product.accent,
           logoUrl: `/logos/${slug}.svg`,
           platforms: platformsFor[slug] ?? ["web"],
-          ...sampleLinks[slug],
+          ...sampleLinks(slug, platformsFor[slug] ?? ["web"]),
           galleryUrls: withScreenshots.has(slug)
             ? [`/samples/${slug}-1.svg`, `/samples/${slug}-2.svg`]
             : [],

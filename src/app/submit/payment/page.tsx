@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
+import { pageMetadata } from "@/lib/seo";
 import { Suspense } from "react";
 import Link from "next/link";
+import { ArrowRight, Check } from "lucide-react";
 import { redirect } from "next/navigation";
 import { resumeCheckout } from "@/app/actions";
 import { PageBand } from "@/components/sections";
@@ -8,8 +10,15 @@ import { getCurrentUser } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { formatLaunchDay } from "@/lib/dates";
 import { formatPrice, LAUNCH_PASS, syncCheckout } from "@/lib/payments";
+import { TrackView } from "@/components/analytics/track-view";
+import { Button } from "@/components/ui/button";
 
-export const metadata: Metadata = { title: "Launch Pass payment | LemoLaunch", robots: { index: false } };
+export const metadata: Metadata = pageMetadata({
+  title: "Launch Pass payment",
+  description: "Your Launch Pass payment on LemoLaunch.",
+  path: "/submit/payment",
+  noindex: true,
+});
 
 export default function PaymentReturnPage({ searchParams }: PageProps<"/submit/payment">) {
   return (
@@ -49,6 +58,7 @@ async function PaymentResult({ searchParams }: { searchParams: PageProps<"/submi
     : "your launch day";
   return (
     <>
+      <TrackView event={paid ? "launch_pass_paid" : "launch_pass_payment_unfinished"} properties={{ submission_id: submission.id }} />
       <PageBand
         title={paid ? "You're launching!" : "Payment not finished"}
         description={
@@ -57,11 +67,14 @@ async function PaymentResult({ searchParams }: { searchParams: PageProps<"/submi
             : `We haven't received the Launch Pass payment for ${submission.name} yet.`
         }
       />
-      <div className="mx-auto max-w-2xl px-4 py-12">
-        <div className="rounded-[22px] border-2 border-ink bg-paper p-6 shadow-[6px_6px_0_0_var(--pop)] sm:p-8">
+      <div className="mx-auto max-w-6xl px-4 py-10 sm:px-8 sm:py-12">
+        <div className="max-w-2xl rounded-2xl bg-card p-6 shadow-paper ring-1 ring-border sm:p-8">
           {paid ? (
             <>
-              <h2 className="font-display text-2xl font-extrabold">What happens next</h2>
+              <span className="grid size-11 place-items-center rounded-xl bg-lemon text-on-lemon">
+                <Check className="size-5" strokeWidth={2.5} aria-hidden />
+              </span>
+              <h2 className="mt-5 font-display text-2xl font-bold">What happens next</h2>
               <ol className="mt-4 grid gap-3">
                 {[
                   `It's scheduled: it goes live at 00:00 UTC on ${launchDay}.`,
@@ -69,53 +82,48 @@ async function PaymentResult({ searchParams }: { searchParams: PageProps<"/submi
                   `It's featured for ${LAUNCH_PASS.featuredDays} days, starting on launch day.`,
                 ].map((step, i) => (
                   <li key={step} className="flex gap-3">
-                    <span className="grid size-7 shrink-0 place-items-center rounded-lg bg-signal font-display text-sm font-bold text-on-signal">
+                    <span className="num grid size-6 shrink-0 place-items-center rounded-full bg-muted text-xs font-medium">
                       {i + 1}
                     </span>
                     {step}
                   </li>
                 ))}
               </ol>
-              <div className="mt-7 flex flex-wrap gap-3">
+              <div className="mt-7 flex flex-wrap gap-2.5">
                 {submission.product && (
-                  <Link
-                    href={`/products/${submission.product.slug}`}
-                    className="press inline-flex h-12 items-center rounded-xl border-2 border-on-signal bg-signal px-6 font-bold text-on-signal shadow-[4px_4px_0_0_var(--pop)]"
-                  >
-                    See your launch page
-                  </Link>
+                  <Button asChild size="lg">
+                    <Link href={`/products/${submission.product.slug}`}>
+                      See your launch page
+                      <ArrowRight data-icon="inline-end" />
+                    </Link>
+                  </Button>
                 )}
                 {submission.product && (
-                  <Link
-                    href={`/products/${submission.product.slug}#badge`}
-                    className="inline-flex h-12 items-center rounded-xl border-2 border-line px-6 font-semibold"
-                  >
-                    Get badge
-                  </Link>
+                  <Button asChild size="lg" variant="outline">
+                    <Link href={`/products/${submission.product.slug}#badge`}>Get badge</Link>
+                  </Button>
                 )}
-                <Link href="/profile" className="inline-flex h-12 items-center rounded-xl border-2 border-line px-6 font-semibold">
-                  My products
-                </Link>
+                <Button asChild size="lg" variant="ghost">
+                  <Link href="/profile">My products</Link>
+                </Button>
               </div>
             </>
           ) : (
             <>
-              <p>
-                If you just paid, it can take a minute to confirm. Otherwise your submission is saved, and you
-                can finish paying whenever you&apos;re ready.
+              <p className="text-[17px]">
+                If you just paid, it can take a minute to confirm. Otherwise your submission is saved, and you can
+                finish paying whenever you&apos;re ready.
               </p>
-              <div className="mt-6 flex flex-wrap gap-3">
+              <div className="mt-6 flex flex-wrap gap-2.5">
                 <form action={resumeCheckout.bind(null, submission.id)}>
-                  <button
-                    type="submit"
-                    className="press h-12 rounded-xl border-2 border-on-signal bg-signal px-6 font-bold text-on-signal shadow-[4px_4px_0_0_var(--pop)]"
-                  >
+                  <Button type="submit" size="lg">
                     Complete payment
-                  </button>
+                    <ArrowRight data-icon="inline-end" />
+                  </Button>
                 </form>
-                <Link href="/profile" className="inline-flex h-12 items-center rounded-xl border-2 border-line px-6 font-semibold">
-                  Go to My products
-                </Link>
+                <Button asChild size="lg" variant="outline">
+                  <Link href="/profile">Go to My products</Link>
+                </Button>
               </div>
             </>
           )}

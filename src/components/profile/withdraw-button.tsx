@@ -2,6 +2,7 @@
 
 import { useState, useTransition } from "react";
 import { cancelLaunch, withdrawSubmission } from "@/app/profile/actions";
+import { Button } from "@/components/ui/button";
 
 /** Two-step cancel: the first click asks, the second removes the launch. */
 export function WithdrawButton({
@@ -24,23 +25,21 @@ export function WithdrawButton({
 
   if (!confirming) {
     return (
-      <button
-        type="button"
-        onClick={() => setConfirming(true)}
-        className="h-10 rounded-xl border-2 border-line px-3.5 text-sm font-semibold text-mist transition-colors hover:border-danger hover:text-danger"
-      >
+      <Button type="button" variant="ghost" size="sm" onClick={() => setConfirming(true)} className="text-muted-foreground hover:text-destructive">
         {label}
-      </button>
+      </Button>
     );
   }
 
   return (
     <div className="flex flex-wrap items-center gap-2" role="group" aria-label={`${label} ${name}?`}>
-      <span className="text-sm font-semibold">
+      <span className="text-sm font-medium">
         {label} {name}? Its files are deleted{refundNote ? " and your Launch Pass is refunded" : ""}.
       </span>
-      <button
+      <Button
         type="button"
+        variant="destructive"
+        size="sm"
         disabled={pending}
         onClick={() =>
           startTransition(async () => {
@@ -48,18 +47,13 @@ export function WithdrawButton({
             if (result.status === "error") setError(result.message ?? "Couldn't withdraw it.");
           })
         }
-        className="h-10 rounded-xl border-2 border-danger bg-danger px-3.5 text-sm font-bold text-white disabled:opacity-60"
       >
         {pending ? "Working…" : `Yes, ${label.toLowerCase()}`}
-      </button>
-      <button
-        type="button"
-        onClick={() => setConfirming(false)}
-        className="h-10 rounded-xl border-2 border-line px-3.5 text-sm font-semibold"
-      >
+      </Button>
+      <Button type="button" variant="outline" size="sm" onClick={() => setConfirming(false)}>
         Keep it
-      </button>
-      {error && <span role="alert" className="text-sm font-semibold text-danger">{error}</span>}
+      </Button>
+      {error && <span role="alert" className="text-sm font-medium text-destructive">{error}</span>}
     </div>
   );
 }

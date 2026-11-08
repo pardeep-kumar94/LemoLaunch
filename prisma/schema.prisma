@@ -135,8 +135,11 @@ model User {
   id           String   @id @default(cuid())
   name         String
   email        String   @unique
-  /// scrypt hash: "scrypt$<salt hex>$<hash hex>". "!" means the account can't sign in.
+  /// scrypt hash: "scrypt$<salt hex>$<hash hex>". "!" means no password: the account signs in
+  /// with Google (googleId set) or can't sign in at all.
   passwordHash String
+  /// Google account "sub", set once the user has signed in with Google.
+  googleId     String?  @unique
   /// Profile photo, an /uploads path.
   avatarUrl    String?
   /// Short line shown under the name, e.g. "Building tools for remote teams".
