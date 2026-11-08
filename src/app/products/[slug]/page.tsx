@@ -45,7 +45,7 @@ import {
   primaryTopic,
   type RatingSummary,
 } from "@/lib/product-page";
-import { toEmbedUrl } from "@/lib/uploads";
+import { isStoredUpload, toEmbedUrl } from "@/lib/uploads";
 import { readVisitorId } from "@/lib/visitor";
 
 const SLUG_PATTERN = /^[a-z0-9-]{1,80}$/;
@@ -135,7 +135,7 @@ async function Product({ params }: { params: PageProps<"/products/[slug]">["para
 
   const video = !product.videoUrl
     ? null
-    : product.videoUrl.startsWith("/uploads/")
+    : isStoredUpload(product.videoUrl)
       ? { kind: "file" as const, src: product.videoUrl }
       : (() => {
           const embed = toEmbedUrl(product.videoUrl);

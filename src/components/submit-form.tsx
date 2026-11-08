@@ -5,6 +5,7 @@ import Link from "next/link";
 import { submitLaunch, type SubmitField, type SubmitLaunchState } from "@/app/actions";
 import { CheckIcon, GlobeIcon, PhoneIcon } from "@/components/icons";
 import { PLATFORMS, platformLabels, type Platform } from "@/lib/platforms";
+import { uploadFiles } from "@/lib/upload-client";
 import {
   MAX_FEATURE_LENGTH,
   MAX_FEATURES,
@@ -64,7 +65,9 @@ export function SubmitForm({
   const [pricing, setPricing] = useState<PricingModel | null>(null);
   const [featureCount, setFeatureCount] = useState(3);
   const [videoFile, setVideoFile] = useState<File | null>(null);
-  const [clientErrors, setClientErrors] = useState<Partial<Record<SubmitField, string>>>({});
+  const [clientErrors, setClientErrors] = useState<Partial<Record<SubmitField | "form", string>>>({});
+  /** Upload progress from 0 to 1 while files go to storage, otherwise null. */
+  const [uploadProgress, setUploadProgress] = useState<number | null>(null);
   const logoPreview = usePreviews(logo);
   const galleryPreviews = usePreviews(gallery);
 
@@ -100,7 +103,7 @@ export function SubmitForm({
   const serverErrors = state.status === "error" ? state.errors : {};
   const errors: Partial<Record<SubmitField | "form", string>> = { ...serverErrors, ...clientErrors };
 
-  function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
+  async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     // Submitting through a transition (not the form's action prop) keeps the picked files
     // in place if the server asks for a fix.
     event.preventDefault();
@@ -117,7 +120,32 @@ export function SubmitForm({
     setClientErrors(found);
     if (Object.keys(found).length > 0) return;
 
+    // Files go straight to storage first; the form then carries only their URLs, which keeps
+    // the request small enough for serverless hosting.
     const data = new FormData(event.currentTarget);
+    const video = videoMode === "file" ? videoFile : null;
+    setUploadProgress(0);
+    const result = await uploadFiles(
+      [
+        { file: logo[0], kind: "image" as const },
+        ...gallery.map((file) => ({ file, kind: "image" as const })),
+        ...(video ? [{ file: video, kind: "video" as const }] : []),
+      ],
+      setUploadProgress,
+    );
+    setUploadProgress(null);
+    if (!result.ok) {
+      const field: SubmitField | "form" =
+        result.index === undefined ? "form" : result.index === 0 ? "logo" : result.index <= gallery.length ? "gallery" : "video";
+      setClientErrors({ [field]: result.error });
+      return;
+    }
+
+    for (const name of ["logo", "gallery", "videoFile"]) data.delete(name);
+    const [logoUrl, ...rest] = result.urls;
+    data.set("logoUrl", logoUrl);
+    rest.slice(0, gallery.length).forEach((url) => data.append("galleryUrls", url));
+    if (video) data.set("videoUrl", rest[gallery.length]);
     startTransition(() => formAction(data));
   }
 
@@ -485,10 +513,12 @@ export function SubmitForm({
 
       <button
         type="submit"
-        disabled={pending}
+        disabled={pending || uploadProgress !== null}
         className="press h-14 rounded-2xl border-2 border-on-signal bg-signal text-lg font-bold text-on-signal shadow-[4px_4px_0_0_var(--pop)] disabled:opacity-60 sm:justify-self-start sm:px-10"
       >
-        {pending
+        {uploadProgress !== null
+          ? `Uploading files… ${Math.round(uploadProgress * 100)}%`
+          : pending
           ? plan === "pass"
             ? "Saving and opening checkout…"
             : "Uploading and submitting…"

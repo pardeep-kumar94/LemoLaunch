@@ -6,7 +6,7 @@ import { currentSessionId, getCurrentUser, hashPassword, verifyPassword } from "
 import { db } from "@/lib/db";
 import { startOfUtcDay } from "@/lib/dates";
 import { refundSubmission } from "@/lib/payments";
-import { checkUpload, deleteUpload, storeUpload } from "@/lib/uploads";
+import { deleteUpload, verifyUpload } from "@/lib/uploads";
 
 export type FormState = {
   status: "idle" | "saved" | "error";
@@ -44,7 +44,8 @@ export async function updateProfile(_previous: FormState, formData: FormData): P
     linkedinUrl: text(formData, "linkedinUrl"),
   };
   const removeAvatar = formData.get("removeAvatar") === "on";
-  const avatarFile = formData.get("avatar");
+  // A new photo was uploaded straight to storage by the browser; the form carries its URL.
+  const newAvatarUrl = text(formData, "avatarUrl");
 
   const fieldErrors: Record<string, string> = {};
   if (!name || name.length > 60) fieldErrors.name = "Enter your name (60 characters or fewer).";
@@ -55,16 +56,15 @@ export async function updateProfile(_previous: FormState, formData: FormData): P
     }
   }
 
-  let avatar: Awaited<ReturnType<typeof checkUpload>> | null = null;
-  if (!removeAvatar && avatarFile instanceof File && avatarFile.size > 0) {
-    avatar = await checkUpload(avatarFile, "image");
+  if (!removeAvatar && newAvatarUrl) {
+    const avatar = await verifyUpload(newAvatarUrl, "image");
     if (!avatar.ok) fieldErrors.avatar = avatar.error;
   }
   if (Object.keys(fieldErrors).length > 0) return { status: "error", fieldErrors };
 
   let avatarUrl = user.avatarUrl;
-  if (avatar?.ok) avatarUrl = await storeUpload(avatar.upload);
-  else if (removeAvatar) avatarUrl = null;
+  if (removeAvatar) avatarUrl = null;
+  else if (newAvatarUrl) avatarUrl = newAvatarUrl;
 
   await db.user.update({
     where: { id: user.id },

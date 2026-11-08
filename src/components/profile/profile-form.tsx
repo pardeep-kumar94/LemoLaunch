@@ -3,6 +3,7 @@
 import { useActionState, useEffect, useState, useTransition } from "react";
 import { updateProfile, type FormState } from "@/app/profile/actions";
 import { UserAvatar } from "@/components/user-avatar";
+import { uploadFiles } from "@/lib/upload-client";
 import { Field, FormStatus, inputClass, saveButtonClass } from "./form-bits";
 
 const socialFields = [
@@ -31,7 +32,9 @@ export function ProfileForm({
   const [remove, setRemove] = useState(false);
   const [name, setName] = useState(user.name);
   const [headline, setHeadline] = useState(user.headline ?? "");
-  const errors = state.fieldErrors ?? {};
+  const [uploading, setUploading] = useState(false);
+  const [uploadError, setUploadError] = useState<string | null>(null);
+  const errors: Record<string, string> = { ...state.fieldErrors, ...(uploadError ? { avatar: uploadError } : {}) };
 
   useEffect(() => {
     if (!file) return;
@@ -41,10 +44,23 @@ export function ProfileForm({
     return () => URL.revokeObjectURL(url);
   }, [file]);
 
-  function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
+  async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     // A transition instead of the action prop keeps unsaved edits in place if a field is rejected.
     event.preventDefault();
     const data = new FormData(event.currentTarget);
+    // The photo goes straight to storage; the form only carries its URL.
+    data.delete("avatar");
+    setUploadError(null);
+    if (file && !remove) {
+      setUploading(true);
+      const result = await uploadFiles([{ file, kind: "image" }]);
+      setUploading(false);
+      if (!result.ok) {
+        setUploadError(result.error);
+        return;
+      }
+      data.set("avatarUrl", result.urls[0]);
+    }
     startTransition(() => formAction(data));
   }
 
@@ -164,8 +180,8 @@ export function ProfileForm({
       ))}
 
       <FormStatus status={state.status} message={state.message} />
-      <button type="submit" disabled={pending} className={saveButtonClass}>
-        {pending ? "Saving…" : "Save profile"}
+      <button type="submit" disabled={pending || uploading} className={saveButtonClass}>
+        {uploading ? "Uploading photo…" : pending ? "Saving…" : "Save profile"}
       </button>
     </form>
   );

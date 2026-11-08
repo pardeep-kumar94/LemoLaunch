@@ -12,7 +12,7 @@ import { createLaunchPassCheckout, paymentMode } from "@/lib/payments";
 import { checkPlatformLink, isPlatform, sortPlatforms } from "@/lib/platforms";
 import { publishSubmission } from "@/lib/publish";
 import { isPricingModel, MAX_FEATURE_LENGTH, MAX_FEATURES, MAX_TRIAL_DAYS } from "@/lib/product-page";
-import { checkUpload, storeUpload, toEmbedUrl } from "@/lib/uploads";
+import { toEmbedUrl, verifyUpload } from "@/lib/uploads";
 import { ensureVisitorId } from "@/lib/visitor";
 
 export type VoteResult = { ok: true } | { ok: false; error: string };
@@ -114,8 +114,9 @@ export async function submitLaunch(
     const value = formData.get(key);
     return typeof value === "string" ? value.trim() : "";
   };
-  const files = (key: string) =>
-    formData.getAll(key).filter((f): f is File => f instanceof File && f.size > 0);
+  // Files were uploaded straight to storage by the browser; the form carries their URLs.
+  const urls = (key: string) =>
+    formData.getAll(key).filter((v): v is string => typeof v === "string" && v.length > 0 && v.length < 500);
 
   const errors: Partial<Record<SubmitField, string>> = {};
   const name = text("name");
@@ -178,47 +179,42 @@ export async function submitLaunch(
     errors.launchDate = "Pick a launch day from tomorrow onwards.";
   }
 
-  // Check every file before saving any, so a bad file doesn't leave the others orphaned.
-  const [logoFile] = files("logo");
-  const logo = logoFile ? await checkUpload(logoFile, "image") : null;
-  if (!logo) errors.logo = "Add your product's logo.";
-  else if (!logo.ok) errors.logo = logo.error;
+  const [logoUrl] = urls("logoUrl");
+  if (!logoUrl) errors.logo = "Add your product's logo.";
+  else {
+    const logo = await verifyUpload(logoUrl, "image");
+    if (!logo.ok) errors.logo = logo.error;
+  }
 
-  const screenshotFiles = files("gallery");
-  const screenshots = await Promise.all(screenshotFiles.map((f) => checkUpload(f, "image")));
-  if (screenshotFiles.length === 0) errors.gallery = "Add at least one screenshot.";
-  else if (screenshotFiles.length > MAX_SCREENSHOTS) {
+  const galleryUrls = urls("galleryUrls");
+  if (galleryUrls.length === 0) errors.gallery = "Add at least one screenshot.";
+  else if (galleryUrls.length > MAX_SCREENSHOTS) {
     errors.gallery = `Add up to ${MAX_SCREENSHOTS} screenshots.`;
   } else {
-    const bad = screenshots.find((r) => !r.ok);
+    const checked = await Promise.all(galleryUrls.map((url) => verifyUpload(url, "image")));
+    const bad = checked.find((r) => !r.ok);
     if (bad && !bad.ok) errors.gallery = bad.error;
   }
 
   const videoMode = text("videoMode") === "link" ? "link" : "file";
-  let videoLink: string | null = null;
-  let videoUpload: Awaited<ReturnType<typeof checkUpload>> | null = null;
+  let videoUrl = "";
   // The video is optional: check it only when one was given.
   if (videoMode === "link") {
     const link = text("videoLink");
     if (link && !toEmbedUrl(link)) errors.video = "Paste a YouTube, Vimeo or Loom link to your video.";
-    else if (link) videoLink = link;
+    else videoUrl = link;
   } else {
-    const [videoFile] = files("videoFile");
-    if (videoFile) {
-      videoUpload = await checkUpload(videoFile, "video");
-      if (!videoUpload.ok) errors.video = videoUpload.error;
+    const [uploadedVideo] = urls("videoUrl");
+    if (uploadedVideo) {
+      const video = await verifyUpload(uploadedVideo, "video");
+      if (!video.ok) errors.video = video.error;
+      else videoUrl = uploadedVideo;
     }
   }
 
-  if (Object.keys(errors).length > 0 || !topic || !logo?.ok) {
+  if (Object.keys(errors).length > 0 || !topic || !logoUrl) {
     return { status: "error", errors };
   }
-
-  const logoUrl = await storeUpload(logo.upload);
-  const galleryUrls = await Promise.all(
-    screenshots.map((r) => (r.ok ? storeUpload(r.upload) : Promise.reject(new Error("unchecked")))),
-  );
-  const videoUrl = videoLink ?? (videoUpload?.ok ? await storeUpload(videoUpload.upload) : "");
 
   const submission = await db.submission.create({
     select: { id: true },

@@ -3,10 +3,8 @@ import type { NextConfig } from "next";
 const nextConfig: NextConfig = {
   /* config options here */
   cacheComponents: true,
-  experimental: {
-    // Room for a launch submission: logo, four screenshots and a 50 MB video.
-    serverActions: { bodySizeLimit: "80mb" },
-  },
+  // No serverActions.bodySizeLimit: uploads go straight from the browser to storage, so
+  // forms only carry text and file URLs, well under the 1 MB default.
   partialPrefetching: true,
   turbopack: {
     rules: {

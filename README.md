@@ -45,7 +45,7 @@ The seed dates launches relative to the day you run it (yesterday, today, tomorr
 - **Platforms:** every product runs on any of `web`, `ios` and `android` (`Product.platforms`), with a link for each (`websiteUrl`, `appStoreUrl`, `playStoreUrl`). Submissions must include the matching link, and App Store and Google Play links are checked against their real hosts. The homepage and archive filter by `?platform=`.
 - **Profiles:** `User` has an optional photo, headline and website. Products have an optional `makerId`; once a submission is approved into a product, setting it makes the launch appear under that maker's My products with its upvotes and comments. Changing your password signs out your other sessions.
 - **Submitting a launch and commenting require an account.** Upvotes are still anonymous, one per browser via the `lp_visitor` cookie.
-- **Uploads** (logos, screenshots, videos) are checked by their real file type, stored on local disk in `./uploads` (gitignored) and served by `src/app/uploads/[...path]/route.ts` with byte-range support for video. Swap `src/lib/uploads.ts` for S3 or similar before going live.
+- **Uploads** (logos, screenshots, videos, profile photos) go straight from the browser to storage with short-lived signed links (`src/app/upload-actions.ts`, `src/lib/upload-client.ts`), so forms only carry file URLs. The server checks type and size before signing and re-checks the real file type before saving a URL. With the `R2_*` variables from `.env.example` set, files go to a Cloudflare R2 bucket (allow `PUT` from your site in the bucket's CORS policy); without them, they go to `./uploads` (gitignored) through `src/app/api/uploads/route.ts` and are served by `src/app/uploads/[...path]/route.ts`. Move existing local files to R2 with `npx tsx --tsconfig tsconfig.json scripts/migrate-uploads-to-r2.ts` (add `--dry-run` first).
 - **Verified** and **featured** are flags on `Product`, set by the seed for now; there's no verification or promotion flow yet.
 - **Launches publish themselves** (`src/lib/publish.ts`); there's no admin review. A free launch is scheduled on the next day with fewer than 8 free launches. A Launch Pass is scheduled on the maker's chosen day as soon as payment succeeds, and is featured for 7 days. Makers can cancel any launch before it goes live, from their profile; a paid one is refunded automatically.
 - **Payments** use Dodo Payments (`src/lib/payments.ts`). Set the `DODO_*` variables from `.env.example` and point Dodo's webhook at `/api/webhooks/dodo`. Without keys, local development uses a simulated checkout and production hides the Launch Pass.
@@ -70,7 +70,7 @@ src/app/uploads/            Serves uploaded media from ./uploads
 src/app/actions.ts          Server actions: votes, digest, submissions, comments
 src/app/auth-actions.ts     Sign up, sign in, sign out
 src/lib/auth.ts             Password hashing and sessions
-src/lib/uploads.ts          Upload checks, storage and video link parsing
+src/lib/uploads.ts          Upload signing and checks (R2 or local disk), video link parsing
 src/lib/launches.ts         Homepage queries
 src/lib/visitor.ts          Anonymous visitor cookie
 src/components/             Launch card, badges, upvote button, week strip, sections
