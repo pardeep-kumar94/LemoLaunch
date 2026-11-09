@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Bricolage_Grotesque, Geist, Geist_Mono } from "next/font/google";
 import { Suspense } from "react";
 import { PageViews } from "@/components/analytics/page-views";
+import { LaunchPromo } from "@/components/promo/launch-promo";
 import Link from "next/link";
 import { Search } from "lucide-react";
 import { HeaderAccount, HeaderAccountFallback } from "@/components/header-account";
@@ -87,6 +88,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
         </TooltipProvider>
         <Suspense>
           <PageViews />
+          <LaunchPromo />
         </Suspense>
       </body>
     </html>
