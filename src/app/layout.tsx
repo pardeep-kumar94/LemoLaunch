@@ -1,9 +1,9 @@
 import type { Metadata } from "next";
 import { Bricolage_Grotesque, Geist, Geist_Mono } from "next/font/google";
 import { Suspense } from "react";
+import { PageViews } from "@/components/analytics/page-views";
 import Link from "next/link";
 import { Search } from "lucide-react";
-import { GoogleAnalytics } from "@/components/analytics/google-analytics";
 import { HeaderAccount, HeaderAccountFallback } from "@/components/header-account";
 import { MobileMenu, NavLinks } from "@/components/site-nav";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -85,7 +85,9 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
           <div className="flex-1">{children}</div>
           <SiteFooter />
         </TooltipProvider>
-        <GoogleAnalytics />
+        <Suspense>
+          <PageViews />
+        </Suspense>
       </body>
     </html>
   );
@@ -113,8 +115,8 @@ function SiteFooter() {
             <Wordmark />
           </Link>
           <p className="mt-4 max-w-sm text-muted-foreground">
-            A new edition every day at 00:00 UTC: up to 100 products launch, and the community decides
-            what rises to the top. Nobody can pay to climb the ranking.
+            A new edition every day at 00:00 UTC: up to 100 products launch for free, and the community
+            decides what rises to the top.
           </p>
         </div>
         <FooterColumn
@@ -131,7 +133,6 @@ function SiteFooter() {
           title="Makers"
           links={[
             ["Submit a launch", "/submit"],
-            ["Pricing", "/pricing"],
             ["Sign in", "/signin"],
             ["Create an account", "/signup"],
             ["Daily digest", "/#digest"],

@@ -33,10 +33,9 @@ model Product {
   featured    Boolean  @default(false)
   /// Launch day in UTC. Products dated after today are "upcoming".
   launchDate  DateTime @db.Date
-  /// Fast Track: the exact moment it goes live (a 2-hour slot start). Null means 00:00 UTC on
-  /// launchDate. Unique, so one Fast Track launch per slot.
+  /// Retired (Fast Track): the exact go-live time. Unused; every launch goes live at 00:00 UTC.
   launchAt    DateTime? @unique
-  /// Fast Track: pinned to the top of the day's list until this moment.
+  /// Retired (Fast Track): pinned to the top until this moment. Unused.
   pinnedUntil DateTime?
   createdAt   DateTime @default(now())
   /// The account that owns this launch, once a submission is approved.
@@ -107,13 +106,13 @@ model Submission {
   pricingModel  String?
   freeTrialDays Int?
   features      String[] @default([])
-  /// The launch day: the queue's next open day for free launches, the slot's day for Fast Track.
+  /// The launch day: the queue's next open day.
   launchDate  DateTime? @db.Date
-  /// Fast Track: the 2-hour slot the maker picked (held for 30 minutes while they pay).
+  /// Retired (Fast Track): the slot the maker picked. Unused.
   launchAt    DateTime?
-  /// "free" or "fast" (Fast Track). Older rows may say "pass" (the retired Launch Pass).
+  /// "free". Older rows may say "fast" or "pass", from when paid launches existed.
   plan        String   @default("free")
-  /// "awaiting_payment" until Fast Track is paid, "pending" briefly, then "approved" once published.
+  /// "pending" briefly, then "approved" once published. Older rows may be "awaiting_payment".
   status      String   @default("pending")
   /// "none", "awaiting", "paid", "refunded" or "refund_failed".
   paymentStatus     String    @default("none")
@@ -242,8 +241,7 @@ model Comment {
   @@index([productId, createdAt])
 }
 
-/// A paid Boost: a product shown in a Promoted spot on the homepage for 1 to 7 days.
-/// Promoted spots never change the upvote ranking.
+/// Retired: paid Boosts, from when LemoLaunch sold Promoted spots. Unused.
 model Boost {
   id        String   @id @default(cuid())
   productId String

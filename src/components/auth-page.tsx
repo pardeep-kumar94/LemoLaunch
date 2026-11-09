@@ -29,7 +29,7 @@ const copy = {
 
 const points = [
   ["A new edition every day", `Up to ${DAILY_LAUNCH_LIMIT} products go live at 00:00 UTC, each with its own seat.`],
-  ["Ranked by the community", "Upvotes decide the order. Nobody can pay to climb it."],
+  ["Ranked by the community", "Upvotes decide the order, and launching is free."],
   ["Free to launch", "Join the queue at no cost and take the next open seat."],
 ];
 

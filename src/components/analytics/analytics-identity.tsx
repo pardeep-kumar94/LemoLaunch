@@ -2,7 +2,7 @@
 
 import { useEffect } from "react";
 import posthog from "posthog-js";
-import { track } from "@/lib/analytics";
+import { identifyFirebaseUser, track } from "@/lib/analytics";
 
 /** Accounts created this recently count as a sign-up rather than a sign-in. */
 const NEW_ACCOUNT_MS = 10 * 60 * 1000;
@@ -20,6 +20,10 @@ export function AnalyticsIdentity({
   const name = user?.name;
   const email = user?.email;
   const createdAt = user?.createdAt;
+
+  useEffect(() => {
+    identifyFirebaseUser(id);
+  }, [id]);
 
   useEffect(() => {
     if (!process.env.NEXT_PUBLIC_POSTHOG_KEY) return;

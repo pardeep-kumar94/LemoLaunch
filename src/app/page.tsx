@@ -15,13 +15,11 @@ import {
   countPlatformsInRange,
   countSeatsTaken,
   getEditionNumber,
-  getPinnedLaunch,
   getPreviousLaunchDays,
   getRankedLaunches,
   getTopicDirectory,
   getTopicsInRange,
 } from "@/lib/launches";
-import { getActiveBoosts } from "@/lib/boost";
 import { isPlatform, platformLabels } from "@/lib/platforms";
 import { DAILY_LAUNCH_LIMIT, launchQueue } from "@/lib/publish";
 import { absoluteUrl, DEFAULT_DESCRIPTION, jsonLd, SITE_NAME } from "@/lib/seo";
@@ -75,11 +73,10 @@ async function HomeContent({ searchParams }: { searchParams: PageProps<"/">["sea
   await connection();
   const now = new Date();
   const today = startOfUtcDay(now);
-  const pinned = await getPinnedLaunch(now, visitorId);
 
-  const [ranked, topics, todayCount, platformCounts, weekLeaders, directory, edition, queue, pastDays, seatsTaken, boosts] =
+  const [ranked, topics, todayCount, platformCounts, weekLeaders, directory, edition, queue, pastDays, seatsTaken] =
     await Promise.all([
-      getRankedLaunches({ from: today, to: today, visitorId, topicSlug: topic, platform, excludeIds: pinned ? [pinned.launch.id] : [] }),
+      getRankedLaunches({ from: today, to: today, visitorId, topicSlug: topic, platform }),
       getTopicsInRange(today, today),
       countLaunchesInRange(today, today),
       countPlatformsInRange(today, today),
@@ -89,7 +86,6 @@ async function HomeContent({ searchParams }: { searchParams: PageProps<"/">["sea
       launchQueue(today),
       getPreviousLaunchDays(today, 3),
       countSeatsTaken(today),
-      getActiveBoosts(today, visitorId),
     ]);
   const [yesterday, ...olderDays] = pastDays;
   const [yesterdayTop, ...olderTops] = await Promise.all([
@@ -109,9 +105,6 @@ async function HomeContent({ searchParams }: { searchParams: PageProps<"/">["sea
   };
   const topicHref = (slug?: string) => homeHref({ topic: slug, platform });
   const visible = filtered || showAll ? ranked : ranked.slice(0, TODAY_PREVIEW);
-  // Paid placements only show on the unfiltered list; they never change anyone's rank.
-  const paid = !filtered;
-  const showPinned = paid && pinned !== null;
   const { weekday, day } = formatLaunchDay(today);
   const nextSeat = formatLaunchDay(queue.day);
   const archiveHref = (d: Date) => `/archive?day=${toDayParam(d)}`;
@@ -120,8 +113,8 @@ async function HomeContent({ searchParams }: { searchParams: PageProps<"/">["sea
   return (
     <>
       <section className="border-b border-border">
-        <div className="mx-auto grid max-w-6xl items-center gap-10 px-4 py-10 sm:px-8 lg:grid-cols-[minmax(0,1fr)_340px] lg:gap-16 lg:py-12">
-          <div>
+        <div className="mx-auto grid max-w-6xl items-center gap-6 px-4 py-6 sm:px-8 lg:grid-cols-[minmax(0,1fr)_380px] lg:gap-12 lg:py-8">
+          <div className="min-w-0">
             <p className="flex items-center gap-3 text-[13px]">
               <span className="inline-flex items-center gap-1.5 font-medium text-leaf">
                 <span aria-hidden className="live-dot size-[7px] rounded-full bg-leaf" />
@@ -129,19 +122,16 @@ async function HomeContent({ searchParams }: { searchParams: PageProps<"/">["sea
               </span>
               <span className="num text-muted-foreground">Edition {edition}</span>
             </p>
-            <h1 className="mt-3 font-display text-[clamp(3.25rem,8vw,5.25rem)] leading-[0.95] font-bold">
-              {weekday},
-              <br />
-              {day}
+            <h1 className="mt-2 font-display text-[clamp(2.25rem,5vw,3.25rem)] leading-none font-bold">
+              {weekday}, {day}
             </h1>
-            <p className="mt-5 max-w-[52ch] text-lg text-muted-foreground">
+            <p className="mt-3 max-w-[60ch] text-muted-foreground">
               {todayCount > 0 ? (
                 <>
                   <span className="font-medium text-foreground">
                     {todayCount} of today&apos;s {DAILY_LAUNCH_LIMIT} launches are live.
                   </span>{" "}
-                  Upvote the ones you&apos;d actually use; the community decides the order, and nobody
-                  can pay to climb it.
+                  Upvote the ones you&apos;d actually use; the community decides the order.
                 </>
               ) : (
                 <>
@@ -151,7 +141,7 @@ async function HomeContent({ searchParams }: { searchParams: PageProps<"/">["sea
               )}
             </p>
             {categoryList.length > 0 && (
-              <nav aria-label="Jump to a category" className="mt-6 flex flex-wrap gap-2">
+              <nav aria-label="Jump to a category" className="mt-4 flex flex-wrap gap-2">
                 {categoryList.slice(0, 6).map((t) => (
                   <FilterTab key={t.slug} href={topicHref(t.slug === activeTopic?.slug ? undefined : t.slug)} active={t.slug === activeTopic?.slug}>
                     {t.name} <span className="num text-[12px] opacity-60">{t.count}</span>
@@ -167,45 +157,32 @@ async function HomeContent({ searchParams }: { searchParams: PageProps<"/">["sea
             )}
           </div>
 
-          <div className="rounded-2xl bg-card p-5 shadow-paper ring-1 ring-border sm:p-6">
+          <div className="rounded-2xl bg-card p-4 shadow-paper ring-1 ring-border">
             <div className="flex items-baseline justify-between gap-3">
-              <h2 className="font-semibold">Today&apos;s {DAILY_LAUNCH_LIMIT} seats</h2>
-              <p className="num text-[13px] text-muted-foreground">
+              <h2 className="text-sm font-semibold">Today&apos;s {DAILY_LAUNCH_LIMIT} seats</h2>
+              <p className="num text-xs text-muted-foreground">
                 <span className="font-semibold text-foreground">{Math.min(seatsTaken, DAILY_LAUNCH_LIMIT)}</span> / {DAILY_LAUNCH_LIMIT} taken
               </p>
             </div>
             <SeatGrid
               total={DAILY_LAUNCH_LIMIT}
               filled={Math.min(seatsTaken, DAILY_LAUNCH_LIMIT)}
+              columns={25}
               animate
-              className="mt-4 grid-cols-20 gap-[3px] sm:gap-1 lg:grid-cols-10"
+              className="mt-3 gap-[3px]"
             />
-            <div className="mt-3 flex gap-4 text-xs text-muted-foreground">
-              <span className="inline-flex items-center gap-1.5">
-                <span className="size-2.5 rounded-[3px] bg-lemon-soft shadow-[inset_0_0_0_1px_color-mix(in_oklab,var(--lemon-deep)_45%,var(--card))]" />
-                Launched
-              </span>
-              <span className="inline-flex items-center gap-1.5">
-                <span className="size-2.5 rounded-[3px] shadow-[inset_0_0_0_1px_var(--input)]" />
-                Open
-              </span>
-            </div>
-            <div className="my-5 border-t border-dashed border-input" />
-            <div className="flex items-end justify-between gap-3">
-              <div>
-                <p className="text-[13px] text-muted-foreground">Next edition in</p>
-                <Countdown className="text-[30px] leading-tight font-medium tracking-[-0.02em]" />
-              </div>
-              <Button asChild variant="outline" size="sm">
+            <div className="mt-3 flex items-center justify-between gap-3 border-t border-dashed border-input pt-3">
+              <p className="text-xs text-muted-foreground">
+                Next edition in
+                <Countdown className="block text-lg leading-tight font-medium text-foreground" />
+              </p>
+              <Button asChild variant="outline" size="sm" title={`Free seats open from ${nextSeat.weekday}, ${nextSeat.day}`}>
                 <Link href="/submit">
                   Take a seat
                   <ArrowRight data-icon="inline-end" />
                 </Link>
               </Button>
             </div>
-            <p className="mt-3 text-xs text-muted-foreground">
-              Free seats open from {nextSeat.weekday}, {nextSeat.day}.
-            </p>
           </div>
         </div>
       </section>
@@ -229,19 +206,11 @@ async function HomeContent({ searchParams }: { searchParams: PageProps<"/">["sea
               </div>
             </div>
 
-            {visible.length > 0 || showPinned ? (
+            {visible.length > 0 ? (
               <LaunchList className="mt-4">
-                {showPinned && pinned && (
-                  <LaunchCard launch={pinned.launch} pinned={{ remaining: pinned.remaining }} topicHref={(slug) => topicHref(slug)} />
-                )}
-                {paid && boosts.top.map((launch) => <LaunchCard key={`top-${launch.id}`} launch={launch} promoted />)}
-                {visible.flatMap((launch, index) => [
-                  <LaunchCard key={launch.id} launch={launch} rank={index + 1} topicHref={(slug) => topicHref(slug)} />,
-                  ...(paid && index === Math.min(4, visible.length - 1)
-                    ? boosts.middle.map((boosted) => <LaunchCard key={`middle-${boosted.id}`} launch={boosted} promoted />)
-                    : []),
-                ])}
-                {paid && boosts.bottom.map((launch) => <LaunchCard key={`bottom-${launch.id}`} launch={launch} promoted />)}
+                {visible.map((launch, index) => (
+                  <LaunchCard key={launch.id} launch={launch} rank={index + 1} topicHref={(slug) => topicHref(slug)} />
+                ))}
                 {visible.length < ranked.length && (
                   <li className="flex justify-center px-4 py-3.5">
                     <Button asChild variant="outline">

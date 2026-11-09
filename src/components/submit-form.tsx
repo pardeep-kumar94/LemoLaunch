@@ -2,7 +2,7 @@
 
 import { useActionState, useEffect, useState, useTransition } from "react";
 import Link from "next/link";
-import { ArrowRight, Check, ChevronUp, Globe, ImagePlus, Smartphone, Zap } from "lucide-react";
+import { ArrowRight, Check, ChevronUp, Globe, ImagePlus, Smartphone } from "lucide-react";
 import { submitLaunch, type SubmitField, type SubmitLaunchState } from "@/app/actions";
 import { SeatGrid } from "@/components/seats";
 import { Badge } from "@/components/ui/badge";
@@ -33,34 +33,15 @@ const pricingHints: Record<PricingModel, string> = {
 
 const initialState: SubmitLaunchState = { status: "idle" };
 
-/** Fast Track slots for the picker, worked out on the server. */
-export type FastTrackOptions = {
-  available: boolean;
-  price: string;
-  pinnedHours: number;
-  days: {
-    key: string;
-    /** "Today", "Mon 9". */
-    label: string;
-    /** "Monday, 9 November". */
-    longLabel: string;
-    slots: { iso: string; time: string; status: "open" | "taken" | "past" }[];
-  }[];
-};
-
 const IMAGE_TYPES = "image/png,image/jpeg,image/webp";
 
 const inputClass = "h-10 bg-card shadow-xs";
 
 /** A selectable card wrapping a visually hidden radio or checkbox. */
-const choiceClass = (checked: boolean, disabled = false) =>
+const choiceClass = (checked: boolean) =>
   cn(
     "relative flex cursor-pointer rounded-2xl bg-card ring-1 transition-[box-shadow,background-color] has-[:focus-visible]:ring-3 has-[:focus-visible]:ring-ring/50",
-    disabled
-      ? "cursor-not-allowed opacity-60 ring-border"
-      : checked
-        ? "shadow-lift ring-2 ring-primary"
-        : "shadow-paper ring-border hover:ring-input",
+    checked ? "shadow-lift ring-2 ring-primary" : "shadow-paper ring-border hover:ring-input",
   );
 
 /** Object URLs for picked files, revoked when the files change or the form unmounts. */
@@ -78,14 +59,12 @@ function usePreviews(files: File[]) {
 
 export function SubmitForm({
   topics,
-  fastTrack,
   queue,
   aside,
 }: {
   topics: { slug: string; name: string }[];
-  /** Where a free launch submitted now would land. `seat` is its zero-based seat on that day. */
+  /** Where a launch submitted now would land. `seat` is its zero-based seat on that day. */
   queue: { launchDay: string; ahead: number; seat: number; dailyLimit: number };
-  fastTrack: FastTrackOptions;
   /** Extra content under the summary card, e.g. how launch day works. */
   aside?: React.ReactNode;
 }) {
@@ -94,12 +73,9 @@ export function SubmitForm({
   const [logo, setLogo] = useState<File[]>([]);
   const [gallery, setGallery] = useState<File[]>([]);
   const [platforms, setPlatforms] = useState<Platform[]>(["web"]);
-  const [plan, setPlan] = useState<"free" | "fast">("free");
   const [name, setName] = useState("");
   const [tagline, setTagline] = useState("");
   const [topicSlug, setTopicSlug] = useState("");
-  const [fastDay, setFastDay] = useState(fastTrack.days.find((d) => d.slots.some((s) => s.status === "open"))?.key ?? fastTrack.days[0]?.key ?? "");
-  const [fastSlot, setFastSlot] = useState("");
   const [description, setDescription] = useState("");
   const [pricing, setPricing] = useState<PricingModel | null>(null);
   const [featureCount, setFeatureCount] = useState(3);
@@ -111,7 +87,7 @@ export function SubmitForm({
 
   useEffect(() => {
     if (state.status === "submitted") {
-      track("launch_submitted", { plan, pricing_model: pricing, product_slug: state.slug, screenshots: gallery.length });
+      track("launch_submitted", { pricing_model: pricing, product_slug: state.slug, screenshots: gallery.length });
     }
     // Once per successful submission.
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -125,17 +101,8 @@ export function SubmitForm({
         </span>
         <h2 className="mt-5 font-display text-3xl font-bold sm:text-4xl">{state.name} has a seat</h2>
         <p className="mt-3 text-[17px] text-muted-foreground">
-          {state.launchTime ? (
-            <>
-              It goes live at {state.launchTime} UTC on <span className="font-medium text-foreground">{state.launchDay}</span>{" "}
-              and stays pinned to the top for {fastTrack.pinnedHours} hours.
-            </>
-          ) : (
-            <>
-              It goes live at 00:00 UTC on <span className="font-medium text-foreground">{state.launchDay}</span>.
-            </>
-          )}{" "}
-          You can cancel it from My products any time before then.
+          It goes live at 00:00 UTC on <span className="font-medium text-foreground">{state.launchDay}</span>. You
+          can cancel it from My products any time before then.
         </p>
         <div className="mt-7 flex flex-wrap gap-2.5">
           <Button asChild size="lg">
@@ -157,10 +124,6 @@ export function SubmitForm({
 
   const serverErrors = state.status === "error" ? state.errors : {};
   const errors: Partial<Record<SubmitField | "form", string>> = { ...serverErrors, ...clientErrors };
-  const pickedSlot = fastTrack.days.flatMap((d) => d.slots.map((slot) => ({ ...slot, dayLabel: d.longLabel }))).find((slot) => slot.iso === fastSlot);
-  const launchDayLabel =
-    plan === "fast" ? (pickedSlot ? `${pickedSlot.dayLabel}, ${pickedSlot.time} UTC` : "Pick a time slot") : queue.launchDay;
-  const shownDay = fastTrack.days.find((d) => d.key === fastDay) ?? fastTrack.days[0];
   const busy = pending || uploadProgress !== null;
 
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
@@ -169,7 +132,6 @@ export function SubmitForm({
     event.preventDefault();
     const found: Partial<Record<SubmitField, string>> = {};
     if (description.trim().length < 20) found.description = "Describe your product in 20 to 600 characters.";
-    if (plan === "fast" && !fastSlot) found.launchAt = "Pick a time slot for your Fast Track launch.";
     if (platforms.length === 0) found.platforms = "Choose at least one: website, iPhone app or Android app.";
     if (!pricing) found.pricingModel = "Choose how your product is priced.";
     if (logo.length === 0) found.logo = "Add your product's logo.";
@@ -203,8 +165,6 @@ export function SubmitForm({
     const [logoUrl, ...rest] = result.urls;
     data.set("logoUrl", logoUrl);
     rest.forEach((url) => data.append("galleryUrls", url));
-    // A Fast Track submission redirects to checkout once the server accepts it.
-    if (plan === "fast") track("fast_track_checkout_started", { pricing_model: pricing, slot: fastSlot });
     startTransition(() => formAction(data));
   }
 
@@ -508,145 +468,29 @@ export function SubmitForm({
 
         <Section
           title="Take your seat"
-          description={`Every day has ${queue.dailyLimit} launch seats. Paying never buys upvotes or rank: every launch is ranked by the community.`}
+          description={`Every day has ${queue.dailyLimit} launch seats, free for everyone. The community decides the order.`}
         >
-          <fieldset className="grid gap-3" aria-describedby={errors.plan ? "plan-error" : undefined}>
-            <legend className="sr-only">How do you want to launch?</legend>
-
-            <label className={cn(choiceClass(plan === "free"), "flex-col gap-5 p-5 sm:p-6")}>
-              <input type="radio" name="plan" value="free" checked={plan === "free"} onChange={() => setPlan("free")} className="sr-only" />
-              <span className="flex items-start gap-3.5">
-                <RadioDot checked={plan === "free"} />
-                <span className="min-w-0 flex-1">
-                  <span className="flex items-baseline justify-between gap-3">
-                    <span className="font-display text-2xl font-bold">Free launch</span>
-                    <span className="num text-xl font-medium">$0</span>
-                  </span>
-                  <span className="mt-1 block text-muted-foreground">Join the queue and take the next open seat.</span>
-                </span>
-              </span>
-              <span className="grid items-center gap-6 sm:grid-cols-[200px_minmax(0,1fr)] sm:pl-8">
-                <SeatGrid
-                  total={queue.dailyLimit}
-                  filled={queue.seat}
-                  highlight={queue.seat}
-                  tone="queued"
-                  className="w-full max-w-[200px] gap-[3px]"
-                />
-                <span>
-                  <span className="block text-[13px] text-muted-foreground">Your seat</span>
-                  <span className="mt-1 block font-display text-3xl leading-[1.02] font-bold">{queue.launchDay}</span>
-                  <span className="num mt-2 block text-[13px]">
-                    Seat {queue.seat + 1} of {queue.dailyLimit} · 00:00 UTC
-                  </span>
-                  <span className="mt-1.5 block text-sm text-muted-foreground">
-                    {queue.ahead === 0
-                      ? "Nobody is ahead of you in the queue."
-                      : `${queue.ahead} ${queue.ahead === 1 ? "launch is" : "launches are"} ahead of you in the queue.`}
-                  </span>
-                </span>
-              </span>
-            </label>
-
-            <label className={cn(choiceClass(plan === "fast", !fastTrack.available), "flex-col gap-4 p-5 sm:p-6")}>
-              <input
-                type="radio"
-                name="plan"
-                value="fast"
-                checked={plan === "fast"}
-                disabled={!fastTrack.available}
-                onChange={() => setPlan("fast")}
-                className="sr-only"
-              />
-              <span className="flex items-start gap-3.5">
-                <RadioDot checked={plan === "fast"} />
-                <span className="min-w-0 flex-1">
-                  <span className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
-                    <span className="flex flex-wrap items-center gap-2">
-                      <span className="font-display text-2xl font-bold">Fast Track</span>
-                      <Badge variant="lemon">
-                        <Zap aria-hidden />
-                        Skip the queue
-                      </Badge>
-                    </span>
-                    <span className="num text-xl font-medium">{fastTrack.available ? fastTrack.price : "Coming soon"}</span>
-                  </span>
-                  <span className="mt-1 block text-muted-foreground">
-                    Go live at the hour you pick, pinned to the top of the day for {fastTrack.pinnedHours} hours with a
-                    Fast Track label. One launch per slot.
-                  </span>
-                </span>
-              </span>
-            </label>
-            {plan === "fast" && shownDay && (
-              <div className="grid gap-3 sm:pl-14" role="group" aria-labelledby="slot-label" aria-describedby={errors.launchAt ? "launchAt-error" : undefined}>
-                <input type="hidden" name="launchAt" value={fastSlot} />
-                <div className="flex flex-wrap items-center gap-3">
-                  <span id="slot-label" className="font-medium">
-                    Pick your hour
-                  </span>
-                  <span className="text-[13px] text-muted-foreground">Times in UTC</span>
-                </div>
-                <div className="flex max-w-full gap-1 overflow-x-auto rounded-xl bg-muted p-[3px] [scrollbar-width:none]">
-                  {fastTrack.days.map((d) => {
-                    const open = d.slots.filter((slot) => slot.status === "open").length;
-                    return (
-                      <button
-                        key={d.key}
-                        type="button"
-                        onClick={() => setFastDay(d.key)}
-                        aria-pressed={d.key === shownDay.key}
-                        disabled={open === 0}
-                        className={cn(
-                          "h-9 shrink-0 rounded-[9px] px-3 text-[13px] font-medium whitespace-nowrap transition-colors disabled:opacity-40",
-                          d.key === shownDay.key ? "bg-card text-foreground shadow-xs" : "text-muted-foreground hover:text-foreground",
-                        )}
-                      >
-                        {d.label}
-                      </button>
-                    );
-                  })}
-                </div>
-                <div className="grid grid-cols-3 gap-2 sm:grid-cols-6">
-                  {shownDay.slots.map((slot) => {
-                    const selected = slot.iso === fastSlot;
-                    const unavailable = slot.status !== "open";
-                    return (
-                      <button
-                        key={slot.iso}
-                        type="button"
-                        disabled={unavailable}
-                        aria-pressed={selected}
-                        onClick={() => setFastSlot(slot.iso)}
-                        className={cn(
-                          "grid h-14 place-items-center content-center gap-0.5 rounded-[10px] border text-xs transition-[background-color,border-color,box-shadow]",
-                          selected
-                            ? "border-lemon-deep bg-lemon text-on-lemon shadow-[0_0_0_3px_color-mix(in_oklab,var(--ring)_35%,transparent)]"
-                            : unavailable
-                              ? "cursor-not-allowed border-transparent bg-muted text-muted-foreground/60"
-                              : "border-border bg-card hover:border-lemon-deep hover:bg-accent",
-                        )}
-                      >
-                        <span className={cn("num text-[13px] font-medium", unavailable && "line-through")}>{slot.time}</span>
-                        <span>{selected ? "Selected" : slot.status === "taken" ? "Taken" : slot.status === "past" ? "Passed" : "Open"}</span>
-                      </button>
-                    );
-                  })}
-                </div>
-                {errors.launchAt && (
-                  <p id="launchAt-error" className="text-sm font-medium text-destructive">
-                    {errors.launchAt}
-                  </p>
-                )}
-              </div>
-            )}
-            {errors.plan && <p id="plan-error" className="text-sm font-medium text-destructive">{errors.plan}</p>}
-            <p className="text-sm">
-              <Link href="/pricing" className="font-medium underline decoration-lemon-deep decoration-2">
-                Compare plans
-              </Link>
-            </p>
-          </fieldset>
+          <div className="grid items-center gap-6 rounded-2xl bg-card p-5 shadow-paper ring-1 ring-border sm:grid-cols-[200px_minmax(0,1fr)] sm:p-6">
+            <SeatGrid
+              total={queue.dailyLimit}
+              filled={queue.seat}
+              highlight={queue.seat}
+              tone="queued"
+              className="w-full max-w-[200px] gap-[3px]"
+            />
+            <div>
+              <p className="text-[13px] text-muted-foreground">Your seat</p>
+              <p className="mt-1 font-display text-3xl leading-[1.02] font-bold">{queue.launchDay}</p>
+              <p className="num mt-2 text-[13px]">
+                Seat {queue.seat + 1} of {queue.dailyLimit} · 00:00 UTC
+              </p>
+              <p className="mt-1.5 text-sm text-muted-foreground">
+                {queue.ahead === 0
+                  ? "Nobody is ahead of you in the queue."
+                  : `${queue.ahead} ${queue.ahead === 1 ? "launch is" : "launches are"} ahead of you in the queue.`}
+              </p>
+            </div>
+          </div>
         </Section>
       </div>
 
@@ -675,32 +519,20 @@ export function SubmitForm({
           </div>
           <div className="my-5 border-t border-dashed border-input" />
           <dl className="grid gap-2.5 text-sm">
-            <SummaryRow label="Launch">{plan === "fast" ? "Fast Track" : "Free"}</SummaryRow>
-            <SummaryRow label="Goes live">{launchDayLabel}</SummaryRow>
-            {plan === "fast" && <SummaryRow label="Pinned">{fastTrack.pinnedHours} hours at the top</SummaryRow>}
-            {plan === "free" && (
-              <SummaryRow label="Seat">
-                <span className="num">
-                  {queue.seat + 1} of {queue.dailyLimit}
-                </span>
-              </SummaryRow>
-            )}
+            <SummaryRow label="Goes live">{queue.launchDay}</SummaryRow>
+            <SummaryRow label="Seat">
+              <span className="num">
+                {queue.seat + 1} of {queue.dailyLimit}
+              </span>
+            </SummaryRow>
             {topicSlug && <SummaryRow label="Category">{topics.find((t) => t.slug === topicSlug)?.name}</SummaryRow>}
           </dl>
-          <div className="mt-4 flex items-baseline justify-between border-t border-border pt-4">
-            <span className="font-semibold">Due today</span>
-            <span className="num text-lg font-semibold">{plan === "fast" ? fastTrack.price : "$0"}</span>
-          </div>
           <Button type="submit" size="lg" disabled={busy} className="mt-5 w-full">
             {uploadProgress !== null
               ? `Uploading files… ${Math.round(uploadProgress * 100)}%`
               : pending
-                ? plan === "fast"
-                  ? "Saving and opening checkout…"
-                  : "Publishing…"
-                : plan === "fast"
-                  ? "Continue to payment"
-                  : "Publish launch"}
+                ? "Publishing…"
+                : "Publish launch"}
             {!busy && <ArrowRight data-icon="inline-end" />}
           </Button>
           {uploadProgress !== null && (
@@ -737,20 +569,6 @@ function SummaryRow({ label, children }: { label: string; children: React.ReactN
       <dt className="text-muted-foreground">{label}</dt>
       <dd className="text-right font-medium">{children}</dd>
     </div>
-  );
-}
-
-function RadioDot({ checked }: { checked: boolean }) {
-  return (
-    <span
-      aria-hidden
-      className={cn(
-        "mt-1.5 grid size-[18px] shrink-0 place-items-center rounded-full border-[1.5px] transition-colors",
-        checked ? "border-primary" : "border-input",
-      )}
-    >
-      {checked && <span className="size-2.5 rounded-full bg-primary" />}
-    </span>
   );
 }
 

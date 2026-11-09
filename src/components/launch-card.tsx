@@ -1,9 +1,8 @@
 import Link from "next/link";
-import { MessageCircle, Pin, Zap } from "lucide-react";
+import { MessageCircle } from "lucide-react";
 import { MakerAvatar, VerifiedBadge } from "@/components/badges";
 import { LogoTile } from "@/components/logo-tile";
 import { PlatformBadges } from "@/components/platform-badges";
-import { Badge } from "@/components/ui/badge";
 import { UpvoteButton } from "@/components/upvote-button";
 import type { LaunchSummary } from "@/lib/launches";
 import { cn } from "@/lib/utils";
@@ -22,33 +21,25 @@ export function LaunchCard({
   launch,
   rank,
   topicHref = (slug) => `/categories/${slug}`,
-  pinned,
-  promoted = false,
 }: {
   launch: LaunchSummary;
   /** Position in the list, shown on the left. */
   rank?: number;
   topicHref?: (slug: string) => string;
-  /** Fast Track: pinned to the top, with how much of the pinned time is left (0 to 1). */
-  pinned?: { remaining: number };
-  /** Paid placement; shown with a Promoted label and no rank. */
-  promoted?: boolean;
 }) {
-  // The retired Launch Pass's "featured" flag no longer shows; Fast Track and Promoted replace it.
-  const label = pinned ? "Fast Track" : null;
   // Unranked lists (search results) drop the rank column entirely.
-  const showRank = rank !== undefined || Boolean(pinned) || promoted;
+  const showRank = rank !== undefined;
   return (
     <li
       className={cn(
         "group relative grid grid-cols-[minmax(0,1fr)_auto] items-center gap-3.5 px-4 py-4 transition-colors sm:px-5",
         showRank ? "sm:grid-cols-[28px_48px_minmax(0,1fr)_auto]" : "sm:grid-cols-[48px_minmax(0,1fr)_auto]",
-        promoted ? "bg-[color-mix(in_oklab,var(--muted)_55%,var(--card))]" : "hover:bg-[color-mix(in_oklab,var(--accent)_55%,var(--card))]",
+        "hover:bg-[color-mix(in_oklab,var(--accent)_55%,var(--card))]",
       )}
     >
       {showRank && (
         <span className="num hidden text-center text-[13px] text-muted-foreground sm:block">
-          {pinned ? <Pin className="mx-auto size-4 text-foreground" aria-label="Pinned" /> : promoted ? null : rank}
+          {rank}
         </span>
       )}
       <div className="flex min-w-0 items-center gap-3.5 sm:contents">
@@ -64,13 +55,6 @@ export function LaunchCard({
               </Link>
             </h3>
             {launch.verified && <VerifiedBadge />}
-            {label && (
-              <Badge variant="lemon">
-                <Zap aria-hidden />
-                {label}
-              </Badge>
-            )}
-            {promoted && <Badge variant="secondary">Promoted</Badge>}
           </div>
           <p className="mt-0.5 text-muted-foreground sm:truncate">{launch.tagline}</p>
           <div className="mt-1.5 flex flex-wrap items-center gap-x-2.5 gap-y-1 text-[12.5px] text-muted-foreground">
@@ -101,11 +85,6 @@ export function LaunchCard({
         </div>
       </div>
       <UpvoteButton productId={launch.id} productName={launch.name} voteCount={launch.voteCount} hasVoted={launch.hasVoted} />
-      {pinned && (
-        <span aria-hidden className="absolute inset-x-0 -bottom-px h-[3px] bg-[color-mix(in_oklab,var(--lemon)_30%,transparent)]">
-          <span className="block h-full rounded-r-full bg-lemon-deep" style={{ width: `${Math.round(pinned.remaining * 100)}%` }} />
-        </span>
-      )}
     </li>
   );
 }

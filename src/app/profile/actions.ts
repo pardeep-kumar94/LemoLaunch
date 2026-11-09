@@ -5,7 +5,7 @@ import { Prisma } from "@prisma/client";
 import { currentSessionId, getCurrentUser, hashPassword, hasPassword, verifyPassword } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { startOfUtcDay } from "@/lib/dates";
-import { refundSubmission } from "@/lib/payments";
+import { publishSubmission } from "@/lib/publish";
 import { deleteUpload, verifyUpload } from "@/lib/uploads";
 
 export type FormState = {
@@ -155,7 +155,7 @@ export async function changePassword(_previous: FormState, formData: FormData): 
   };
 }
 
-/** Deletes one of the signed-in user's unpaid Fast Track submissions. */
+/** Deletes one of the signed-in user's unpublished launches, saved back when paid launches existed. */
 export async function withdrawSubmission(submissionId: string): Promise<FormState> {
   const user = await getCurrentUser();
   if (!user) return signedOut;
@@ -173,35 +173,41 @@ export async function withdrawSubmission(submissionId: string): Promise<FormStat
   return { status: "saved", message: "Deleted." };
 }
 
-/** Cancels one of the signed-in user's launches before it goes live, refunding a paid Fast Track. */
+/** Puts one of the signed-in user's unpublished launches into the free queue. */
+export async function publishSavedLaunch(submissionId: string): Promise<FormState> {
+  const user = await getCurrentUser();
+  if (!user) return signedOut;
+  if (typeof submissionId !== "string") return { status: "error", message: "That launch couldn't be found." };
+
+  const claimed = await db.submission.updateMany({
+    where: { id: submissionId, userId: user.id, status: "awaiting_payment" },
+    data: { status: "pending", plan: "free", paymentStatus: "none" },
+  });
+  if (claimed.count === 0) return { status: "error", message: "That launch couldn't be found." };
+  const published = await publishSubmission(submissionId);
+  refresh();
+  if (!published) return { status: "error", message: "Your launch couldn't be scheduled. Try again shortly." };
+  return { status: "saved", message: "Scheduled." };
+}
+
+/** Cancels one of the signed-in user's launches before it goes live. */
 export async function cancelLaunch(productId: string): Promise<FormState> {
   const user = await getCurrentUser();
   if (!user) return signedOut;
   if (typeof productId !== "string") return { status: "error", message: "That launch couldn't be found." };
 
   const product = await db.product.findFirst({
-    // Not live yet: a later day, or a Fast Track slot that hasn't started.
-    where: {
-      id: productId,
-      makerId: user.id,
-      OR: [{ launchDate: { gt: startOfUtcDay(new Date()) } }, { launchAt: { gt: new Date() } }],
-    },
+    // Not live yet: launching on a later day.
+    where: { id: productId, makerId: user.id, launchDate: { gt: startOfUtcDay(new Date()) } },
     select: {
       id: true,
       logoUrl: true,
       galleryUrls: true,
       videoUrl: true,
-      submission: { select: { id: true, paymentStatus: true } },
+      submission: { select: { id: true } },
     },
   });
   if (!product) return { status: "error", message: "Only launches that haven't gone live yet can be cancelled." };
-
-  if (product.submission?.paymentStatus === "paid") {
-    const refunded = await refundSubmission(product.submission.id, "Launch cancelled by the maker");
-    if (!refunded) {
-      return { status: "error", message: "We couldn't start your refund, so the launch is still scheduled. Try again shortly." };
-    }
-  }
 
   await db.$transaction([
     ...(product.submission ? [db.submission.delete({ where: { id: product.submission.id } })] : []),

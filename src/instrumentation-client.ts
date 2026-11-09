@@ -1,4 +1,5 @@
 import posthog from "posthog-js";
+import { firebaseAnalytics } from "@/lib/firebase";
 
 // Product analytics. Runs before the app becomes interactive. With no NEXT_PUBLIC_POSTHOG_KEY,
 // nothing loads and nothing is sent.
@@ -42,4 +43,12 @@ if (key) {
     },
     { capture: true },
   );
+}
+
+// Firebase Analytics starts once the page has loaded, so it records the first page view
+// without delaying it.
+if (typeof window !== "undefined") {
+  const start = () => void firebaseAnalytics();
+  if (document.readyState === "complete") start();
+  else window.addEventListener("load", start, { once: true });
 }

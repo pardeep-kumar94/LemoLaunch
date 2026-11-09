@@ -1,16 +1,13 @@
 import { db } from "@/lib/db";
 import { addUtcDays, startOfUtcDay } from "@/lib/dates";
-import { isSlotOpen, nextFreeSlot } from "@/lib/fast-track";
-import { FAST_TRACK } from "@/lib/pricing";
 
-// Launches publish themselves: free ones join the queue and take the next day with a free seat;
-// Fast Track ones take the slot the maker picked, as soon as the payment succeeds.
+// Launches publish themselves: they join the queue and take the next day with a free seat.
 
-/** Free seats per day; the queue moves on to the next day after that. Fast Track launches are extra. */
+/** Seats per day; the queue moves on to the next day after that. */
 export const DAILY_LAUNCH_LIMIT = 100;
 
 /**
- * Where a new free launch would land in the queue: the first day from tomorrow with fewer than
+ * Where a new launch would land in the queue: the first day from tomorrow with fewer than
  * DAILY_LAUNCH_LIMIT launches, how many launches are scheduled ahead of it, and how many are
  * already on that day (so the new launch takes seat `onDay + 1`).
  */
@@ -18,8 +15,7 @@ export async function launchQueue(today: Date): Promise<{ day: Date; ahead: numb
   const from = addUtcDays(today, 1);
   const rows = await db.product.groupBy({
     by: ["launchDate"],
-    // Fast Track launches (with a launch time) don't take a free seat.
-    where: { launchDate: { gte: from }, launchAt: null },
+    where: { launchDate: { gte: from } },
     _count: { _all: true },
   });
   const counts = new Map(rows.map((r) => [r.launchDate.getTime(), r._count._all]));
@@ -62,38 +58,26 @@ function accentFor(name: string): string {
 }
 
 /**
- * Turns a submission into a scheduled product owned by its maker. Free launches take the next
- * day with room in the queue; paid Fast Track keeps the maker's slot (or the next free one, if
- * that slot has passed or was taken meanwhile). Does nothing if the submission is already
- * published or still waiting for payment.
+ * Turns a submission into a scheduled product owned by its maker, on the next day with room in
+ * the queue. Does nothing if the submission is already published.
  */
 export async function publishSubmission(
   submissionId: string,
-): Promise<{ slug: string; launchDate: Date; launchAt: Date | null } | null> {
+): Promise<{ slug: string; launchDate: Date } | null> {
   const submission = await db.submission.findUnique({
     where: { id: submissionId },
     include: { user: { select: { name: true } } },
   });
   if (!submission || submission.status !== "pending") return null;
 
-  const now = new Date();
-  const today = startOfUtcDay(now);
-  const fastTrack = submission.plan === "fast" && submission.paymentStatus === "paid";
-  let launchAt: Date | null = null;
-  if (fastTrack) {
-    launchAt =
-      submission.launchAt && (await isSlotOpen(submission.launchAt, now, submission.id))
-        ? submission.launchAt
-        : await nextFreeSlot(now);
-  }
-  const launchDate = launchAt ? startOfUtcDay(launchAt) : await nextOpenLaunchDay(today);
+  const launchDate = await nextOpenLaunchDay(startOfUtcDay(new Date()));
   const slug = await uniqueProductSlug(submission.name);
 
   const published = await db.$transaction(async (tx) => {
     // Claim the submission first so a webhook and the return page can't both publish it.
     const claimed = await tx.submission.updateMany({
       where: { id: submission.id, status: "pending" },
-      data: { status: "approved", reviewedAt: new Date(), launchDate, launchAt },
+      data: { status: "approved", reviewedAt: new Date(), launchDate },
     });
     if (claimed.count === 0) return null;
 
@@ -118,14 +102,12 @@ export async function publishSubmission(
         features: submission.features,
         primaryTopicSlug: submission.topicSlug,
         launchDate,
-        launchAt,
-        pinnedUntil: launchAt ? new Date(launchAt.getTime() + FAST_TRACK.pinnedHours * 3_600_000) : null,
         topics: submission.topicSlug ? { connect: [{ slug: submission.topicSlug }] } : undefined,
       },
       select: { id: true },
     });
     await tx.submission.update({ where: { id: submission.id }, data: { productId: product.id } });
-    return { slug, launchDate, launchAt };
+    return { slug, launchDate };
   });
   return published;
 }

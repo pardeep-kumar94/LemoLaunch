@@ -19,11 +19,6 @@ export type LaunchSummary = {
   hasVoted: boolean;
 };
 
-/** Fast Track launches stay hidden until their launch time; everything else is live all day. */
-export function liveNow(now = new Date()) {
-  return { OR: [{ launchAt: null }, { launchAt: { lte: now } }] };
-}
-
 export const summarySelect = (visitorId: string | null) =>
   ({
     id: true,
@@ -84,7 +79,7 @@ export function toSummary(row: SummaryRow): LaunchSummary {
 /** The most recent launch day on or before `today`, or null if nothing has launched. */
 export async function getLatestLaunchDay(today: Date): Promise<Date | null> {
   const latest = await db.product.findFirst({
-    where: { launchDate: { lte: today }, ...liveNow() },
+    where: { launchDate: { lte: today } },
     orderBy: { launchDate: "desc" },
     select: { launchDate: true },
   });
@@ -93,7 +88,7 @@ export async function getLatestLaunchDay(today: Date): Promise<Date | null> {
 
 /** Topics with at least one launch between `from` and `to` (inclusive), with how many. */
 export async function getTopicsInRange(from: Date, to: Date) {
-  const where = { launchDate: { gte: from, lte: to }, ...liveNow() };
+  const where = { launchDate: { gte: from, lte: to } };
   const rows = await db.topic.findMany({
     where: { products: { some: where } },
     orderBy: { name: "asc" },
@@ -114,7 +109,6 @@ export async function getRankedLaunches({
   topicSlug,
   platform,
   limit = DAILY_LAUNCH_LIMIT,
-  excludeIds,
 }: {
   from: Date;
   to: Date;
@@ -122,14 +116,10 @@ export async function getRankedLaunches({
   topicSlug?: string;
   platform?: string;
   limit?: number;
-  /** Products shown elsewhere on the page, like the pinned Fast Track launch. */
-  excludeIds?: string[];
 }) {
   const rows = await db.product.findMany({
     where: {
       launchDate: { gte: from, lte: to },
-      ...liveNow(),
-      ...(excludeIds?.length ? { id: { notIn: excludeIds } } : {}),
       ...(topicSlug ? { topics: { some: { slug: topicSlug } } } : {}),
       ...(platform ? { platforms: { has: platform } } : {}),
     },
@@ -141,7 +131,7 @@ export async function getRankedLaunches({
 }
 
 export function countLaunchesInRange(from: Date, to: Date): Promise<number> {
-  return db.product.count({ where: { launchDate: { gte: from, lte: to }, ...liveNow() } });
+  return db.product.count({ where: { launchDate: { gte: from, lte: to } } });
 }
 
 /** Upvotes cast since `since`, across every product. */
@@ -153,29 +143,16 @@ export function isUpcoming(launchDate: Date, today: Date): boolean {
   return launchDate.getTime() >= addUtcDays(today, 1).getTime();
 }
 
-/** Not live yet: a later day, or a Fast Track launch whose slot hasn't started. */
-export function isProductUpcoming(product: { launchDate: Date; launchAt: Date | null }, now = new Date()): boolean {
-  if (product.launchAt) return product.launchAt.getTime() > now.getTime();
+/** Not live yet: launching on a later day. */
+export function isProductUpcoming(product: { launchDate: Date }, now = new Date()): boolean {
   return isUpcoming(product.launchDate, startOfUtcDay(now));
-}
-
-/** The Fast Track launch pinned to the top right now, with how much of its pinned time is left. */
-export async function getPinnedLaunch(now: Date, visitorId: string | null) {
-  const row = await db.product.findFirst({
-    where: { launchAt: { lte: now }, pinnedUntil: { gt: now } },
-    orderBy: { launchAt: "desc" },
-    select: { ...summarySelect(visitorId), launchAt: true, pinnedUntil: true },
-  });
-  if (!row?.launchAt || !row.pinnedUntil) return null;
-  const total = row.pinnedUntil.getTime() - row.launchAt.getTime();
-  return { launch: toSummary(row), remaining: Math.max(0, Math.min(1, (row.pinnedUntil.getTime() - now.getTime()) / total)), pinnedUntil: row.pinnedUntil };
 }
 
 /** Number of launches on each day in [from, to], keyed by `YYYY-MM-DD`. */
 export async function getLaunchCountsByDay(from: Date, to: Date) {
   const rows = await db.product.groupBy({
     by: ["launchDate"],
-    where: { launchDate: { gte: from, lte: to }, ...liveNow() },
+    where: { launchDate: { gte: from, lte: to } },
     _count: { _all: true },
   });
   return new Map(rows.map((r) => [toDayParam(r.launchDate), r._count._all]));
@@ -189,7 +166,6 @@ export async function getProductBySlug(slug: string, visitorId: string | null) {
       description: true,
       websiteUrl: true,
       launchDate: true,
-      launchAt: true,
       galleryUrls: true,
       videoUrl: true,
       appStoreUrl: true,
@@ -210,7 +186,6 @@ export async function getProductBySlug(slug: string, visitorId: string | null) {
     description: row.description,
     websiteUrl: row.websiteUrl,
     launchDate: row.launchDate,
-    launchAt: row.launchAt,
     galleryUrls: row.galleryUrls,
     videoUrl: row.videoUrl,
     appStoreUrl: row.appStoreUrl,
@@ -235,7 +210,6 @@ export async function getRelatedLaunches(
     where: {
       id: { not: productId },
       launchDate: { lte: today },
-      ...liveNow(),
       topics: { some: { slug: topicSlug } },
     },
     orderBy: [{ votes: { _count: "desc" } }, { createdAt: "asc" }],
@@ -252,9 +226,9 @@ export async function getTopicDirectory(today: Date) {
     select: {
       slug: true,
       name: true,
-      _count: { select: { products: { where: { launchDate: { lte: today }, ...liveNow() } } } },
+      _count: { select: { products: { where: { launchDate: { lte: today } } } } },
       products: {
-        where: { launchDate: { lte: today }, ...liveNow() },
+        where: { launchDate: { lte: today } },
         orderBy: [{ votes: { _count: "desc" } }, { createdAt: "asc" }],
         take: 3,
         select: { id: true, name: true, accent: true, logoUrl: true },
@@ -280,7 +254,6 @@ export async function searchLaunches(
   const rows = await db.product.findMany({
     where: {
       launchDate: { lte: today },
-      AND: [liveNow()],
       ...(topicSlug ? { topics: { some: { slug: topicSlug } } } : {}),
       ...(query
         ? {
@@ -318,7 +291,7 @@ export function getComments(productId: string) {
 /** How many launches between `from` and `to` run on each platform. */
 export async function countPlatformsInRange(from: Date, to: Date) {
   const rows = await db.product.findMany({
-    where: { launchDate: { gte: from, lte: to }, ...liveNow() },
+    where: { launchDate: { gte: from, lte: to } },
     select: { platforms: true },
   });
   const counts = { web: 0, ios: 0, android: 0 } as Record<string, number>;
@@ -345,7 +318,7 @@ export async function getPreviousLaunchDays(day: Date, limit: number): Promise<{
   return rows.map((r) => ({ day: r.launchDate, count: r._count._all }));
 }
 
-/** Free seats taken on a day (Fast Track launches don't use one). */
+/** Seats taken on a day. */
 export function countSeatsTaken(day: Date): Promise<number> {
-  return db.product.count({ where: { launchDate: day, launchAt: null } });
+  return db.product.count({ where: { launchDate: day } });
 }

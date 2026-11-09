@@ -1,15 +1,11 @@
 "use server";
 
 import { refresh } from "next/cache";
-import { redirect } from "next/navigation";
 import { Prisma } from "@prisma/client";
 import { db } from "@/lib/db";
-import { siteOrigin } from "@/lib/origin";
 import { formatLaunchDay } from "@/lib/dates";
 import { getCurrentUser } from "@/lib/auth";
-import { formatSlotTime, isSlotOpen } from "@/lib/fast-track";
 import { isProductUpcoming } from "@/lib/launches";
-import { createFastTrackCheckout, paymentMode } from "@/lib/payments";
 import { checkPlatformLink, isPlatform, sortPlatforms } from "@/lib/platforms";
 import { publishSubmission } from "@/lib/publish";
 import { isPricingModel, MAX_FEATURE_LENGTH, MAX_FEATURES, MAX_TRIAL_DAYS } from "@/lib/product-page";
@@ -26,7 +22,7 @@ export async function toggleVote(productId: string): Promise<VoteResult> {
 
   const product = await db.product.findUnique({
     where: { id: productId },
-    select: { launchDate: true, launchAt: true },
+    select: { launchDate: true },
   });
   if (!product) return { ok: false, error: "That product couldn't be found." };
   if (isProductUpcoming(product)) {
@@ -78,7 +74,6 @@ export async function subscribeToDigest(
 
 export type SubmitField =
   | "name"
-  | "plan"
   | "description"
   | "platforms"
   | "websiteUrl"
@@ -89,19 +84,18 @@ export type SubmitField =
   | "pricingModel"
   | "freeTrialDays"
   | "features"
-  | "launchAt"
   | "logo"
   | "gallery"
   | "video";
 
 export type SubmitLaunchState =
   | { status: "idle" }
-  | { status: "submitted"; name: string; slug: string; launchDay: string; launchTime: string | null }
+  | { status: "submitted"; name: string; slug: string; launchDay: string }
   | { status: "error"; errors: Partial<Record<SubmitField | "form", string>> };
 
 const MAX_SCREENSHOTS = 4;
 
-/** Publishes a launch. Free launches are scheduled straight away; Fast Track goes to checkout first. */
+/** Publishes a launch: it joins the queue and takes the next day with a free seat. */
 export async function submitLaunch(
   _previous: SubmitLaunchState,
   formData: FormData,
@@ -170,21 +164,6 @@ export async function submitLaunch(
     errors.description = "Describe your product in 20 to 600 characters.";
   }
 
-  // Free launches join the queue for the next day with a free seat; Fast Track makers pick a slot.
-  const plan = text("plan") === "fast" ? "fast" : "free";
-  let launchAt: Date | null = null;
-  if (plan === "fast") {
-    if (paymentMode() === "off") {
-      errors.plan = "Fast Track isn't available right now. Choose the free launch instead.";
-    } else {
-      const picked = new Date(text("launchAt"));
-      if (Number.isNaN(picked.getTime())) errors.launchAt = "Pick a time slot for your Fast Track launch.";
-      else if (!(await isSlotOpen(picked, new Date()))) {
-        errors.launchAt = "That slot was just taken or has passed. Pick another one.";
-      } else launchAt = picked;
-    }
-  }
-
   const [logoUrl] = urls("logoUrl");
   if (!logoUrl) errors.logo = "Add your product's logo.";
   else {
@@ -219,9 +198,8 @@ export async function submitLaunch(
       email: user.email,
       name,
       description,
-      plan,
-      status: plan === "fast" ? "awaiting_payment" : "pending",
-      paymentStatus: plan === "fast" ? "awaiting" : "none",
+      plan: "free",
+      status: "pending",
       platforms,
       websiteUrl: links.websiteUrl ?? null,
       appStoreUrl: links.appStoreUrl ?? null,
@@ -231,22 +209,12 @@ export async function submitLaunch(
       pricingModel: isPricingModel(pricingModel) ? pricingModel : null,
       freeTrialDays,
       features,
-      launchAt,
       logoUrl,
       galleryUrls,
       videoUrl,
     },
   });
 
-  if (plan === "fast") {
-    // Saved first, so an abandoned checkout can be resumed from the profile page.
-    const checkoutUrl = await createFastTrackCheckout({
-      submissionId: submission.id,
-      customer: { email: user.email, name: user.name },
-      origin: await siteOrigin(),
-    });
-    redirect(checkoutUrl);
-  }
   const published = await publishSubmission(submission.id);
   if (!published) {
     return { status: "error", errors: { form: "Your launch was saved but couldn't be scheduled. Try again from My products." } };
@@ -257,25 +225,7 @@ export async function submitLaunch(
     name,
     slug: published.slug,
     launchDay: `${weekday}, ${day}`,
-    launchTime: published.launchAt ? formatSlotTime(published.launchAt) : null,
   };
-}
-
-/** Restarts checkout for one of the signed-in user's unpaid Fast Track submissions. */
-export async function resumeCheckout(submissionId: string) {
-  const user = await getCurrentUser();
-  if (!user) redirect("/signin?next=/profile");
-  const submission = await db.submission.findFirst({
-    where: { id: submissionId, userId: user.id, paymentStatus: "awaiting" },
-    select: { id: true },
-  });
-  if (!submission) redirect("/profile");
-  const checkoutUrl = await createFastTrackCheckout({
-    submissionId: submission.id,
-    customer: { email: user.email, name: user.name },
-    origin: await siteOrigin(),
-  });
-  redirect(checkoutUrl);
 }
 
 export type CommentState = { status: "idle" | "posted" } | { status: "error"; error: string };
